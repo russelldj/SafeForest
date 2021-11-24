@@ -3,7 +3,6 @@
 
 #SBATCH -p GPU-shared # partition (queue)
 #SBATCH --gres=gpu:v100-16:2 # partition (queue)
-#SBATCH -c 8 # number of cores
 #SBATCH -t 8:00:00 # time limit
 cd /jet/home/russelld/dev/BiSeNet
 source ~/anaconda3/etc/profile.d/conda.sh
