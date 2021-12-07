@@ -38,9 +38,19 @@ def blend_images_gray(im1, im2, alpha=0.7):
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--video-path", type=Path)
-    parser.add_argument("--label-path", type=Path)
-    parser.add_argument("--output-path", type=Path)
+    parser.add_argument("--video-path", type=Path, required=True)
+    parser.add_argument("--label-path", type=Path, required=True)
+    parser.add_argument(
+        "--output-folder",
+        type=Path,
+        help="Where to write the composite video",
+        required=True,
+    )
+    parser.add_argument(
+        "--output-filename",
+        type=Path,
+        help="Filename to be written in --output-folder. Defaults to the label filename",
+    )
     args = parser.parse_args()
     return args
 
@@ -62,4 +72,10 @@ def main(video_path, label_path, output_path):
 
 if __name__ == "__main__":
     args = parse_args()
-    main(args.video_path, args.label_path, args.output_path)
+    if args.output_filename is None:
+        output_filename = args.label_path.name
+    else:
+        output_filename = args.output_filename
+
+    output_path = Path(args.output_folder, output_filename)
+    main(args.video_path, args.label_path, output_path)
