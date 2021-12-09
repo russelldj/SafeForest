@@ -46,6 +46,44 @@ def describe_max(seg_files):
     print(f"The max label is {current_max}")
 
 
+def get_train_val_test(
+    input_rgb_dir, input_seg_dir, test_frac, train_frac, extension="*.png", shuffle_test=True
+):
+    rgb_files = np.asarray(sorted(input_rgb_dir.glob(extension)))
+    seg_files = np.asarray(sorted(input_seg_dir.glob(extension)))
+
+    all_files = rgb_files.tolist() + seg_files.tolist()
+    common_root = os.path.commonpath(all_files)
+
+    rgb_files = np.asarray([x.relative_to(common_root) for x in rgb_files])
+    seg_files = np.asarray([x.relative_to(common_root) for x in seg_files])
+    num_train = int((1 - test_frac) * rgb_files.shape[0])
+    if shuffle_test:
+        train_val_inds = np.zeros((rgb_files.shape[0],), dtype=bool)
+        train_val_locs = np.argsort(np.random.uniform(size=(len(rgb_files),)))[:num_train]
+        train_val_inds[train_val_locs] = True
+        test_inds = np.logical_not(train_val_inds)
+        rgb_files_test = rgb_files[test_inds]
+        seg_files_test = seg_files[test_inds]
+        rgb_files_train_val = rgb_files[train_val_inds]
+        seg_files_train_val = seg_files[train_val_inds]
+    else:
+        rgb_files_test = rgb_files[num_train:]
+        seg_files_test = seg_files[num_train:]
+        rgb_files_train_val = rgb_files[:num_train]
+        seg_files_train_val = seg_files[:num_train]
+
+
+    random_vals = np.random.uniform(size=(num_train,))
+    train_ids = random_vals < train_frac
+    val_ids = np.logical_not(train_ids)
+    return (
+        (rgb_files_train_val[train_ids], rgb_files_train_val[val_ids], rgb_files_test),
+        (seg_files_train_val[train_ids], seg_files_train_val[val_ids], seg_files_test),
+        common_root,
+    )
+
+
 def symlink_mmseg_dataset(
     input_rgb_dir,
     input_seg_dir,
@@ -74,24 +112,6 @@ def symlink_mmseg_dataset(
     # Consider taking in only an output directory
     np.random.seed(random_seed)
     # TODO try to reduct code reuse
-    rgb_files = np.asarray(sorted(input_rgb_dir.glob("*png")))
-    seg_files = np.asarray(sorted(input_seg_dir.glob("*png")))
-
-    all_files = rgb_files.tolist() + seg_files.tolist()
-    common_root = os.path.commonpath(all_files)
-
-    rgb_files = np.asarray([x.relative_to(common_root) for x in rgb_files])
-    seg_files = np.asarray([x.relative_to(common_root) for x in seg_files])
-    num_train = int((1 - test_frac) * rgb_files.shape[0])
-    rgb_files_test = rgb_files[num_train:]
-    seg_files_test = seg_files[num_train:]
-
-    rgb_files_train_val = rgb_files[:num_train]
-    seg_files_train_val = seg_files[:num_train]
-
-    random_vals = np.random.uniform(size=(num_train,))
-    train_ids = random_vals < train_frac
-    val_ids = np.logical_not(train_ids)
 
     img_dir = Path(output_dir, "img_dir")
     ann_dir = Path(output_dir, "ann_dir")
@@ -102,27 +122,75 @@ def symlink_mmseg_dataset(
     [ub.ensuredir(x, mode=0o0755) for x in img_dir_subfolders]
     [ub.ensuredir(x, mode=0o0755) for x in ann_dir_subfolders]
 
+    rgb_files, seg_files, common_root = get_train_val_test(
+        input_rgb_dir, input_seg_dir, test_frac, train_frac, extension="*.png"
+    )
+
+    rgb_output_paths = []
+
     # Do a lot of symlinking
-    for folder, files in zip(
-        img_dir_subfolders,
-        (rgb_files_train_val[train_ids], rgb_files_train_val[val_ids], rgb_files_test),
-    ):
+    for folder, files in zip(img_dir_subfolders, rgb_files,):
+        rgb_output_paths.append([])
         for f in files:
             output_path = Path(folder, f.name)
             input_path = Path(common_root, f)
+            rgb_output_paths[-1].append(output_path)
             info = ub.cmd(f"ln -s '{input_path}' '{output_path}'")
 
+    seg_output_paths = []
+
     # Do a lot of symlinking
-    for folder, files in zip(
-        ann_dir_subfolders,
-        (seg_files_train_val[train_ids], seg_files_train_val[val_ids], seg_files_test),
-    ):
+    for folder, files in zip(ann_dir_subfolders, seg_files,):
+        seg_output_paths.append([])
         for f in files:
             output_path = Path(folder, f.name)
             input_path = Path(common_root, f)
+            seg_output_paths[-1].append(output_path)
             info = ub.cmd(f"ln -s '{input_path}' '{output_path}'")
 
-    breakpoint()
+    train_file, val_file, test_file = [
+        Path(output_dir, f"{x}.txt") for x in TRAIN_VAL_TEST
+    ]
+
+    write_summary_files(
+        rgb_output_paths,
+        seg_output_paths,
+        train_file,
+        val_file,
+        test_file,
+        common_root,
+        False,
+    )
+
+    return rgb_output_paths, seg_output_paths
+
+
+def write_summary_files(
+    all_rgb_files,
+    all_seg_files,
+    train_file,
+    val_file,
+    test_file,
+    common_root,
+    write_test_video,
+):
+    with open(train_file, "w") as outfile_h:
+        for r, s in zip(all_rgb_files[0], all_seg_files[0]):
+            outfile_h.write(f"{r},{s}\n")
+
+    with open(val_file, "w") as outfile_h:
+        for r, s in zip(all_rgb_files[1], all_seg_files[1]):
+            outfile_h.write(f"{r},{s}\n")
+
+    with open(test_file, "w") as outfile_h:
+        for r, s in zip(all_rgb_files[2], all_seg_files[2]):
+            outfile_h.write(f"{r},{s}\n")
+
+    if write_test_video:
+        breakpoint()
+        rgb_files_test = [Path(common_root, f) for f in all_rgb_files[2]]
+        test_video_filename = str(test_file.with_suffix(".mp4"))
+        write_imagelist_to_video(rgb_files_test, test_video_filename)
 
 
 def main(
@@ -138,42 +206,18 @@ def main(
 ):
     np.random.seed(random_seed)
 
-    rgb_files = np.asarray(sorted(rgb_dir.glob("*png")))
-    seg_files = np.asarray(sorted(seg_dir.glob("*png")))
-
-    all_files = rgb_files.tolist() + seg_files.tolist()
-    common_root = os.path.commonpath(all_files)
-
-    rgb_files = np.asarray([x.relative_to(common_root) for x in rgb_files])
-    seg_files = np.asarray([x.relative_to(common_root) for x in seg_files])
-    num_train = int((1 - test_frac) * rgb_files.shape[0])
-    rgb_files_test = rgb_files[num_train:]
-    seg_files_test = seg_files[num_train:]
-
-    rgb_files_train_val = rgb_files[:num_train]
-    seg_files_train_val = seg_files[:num_train]
-
-    random_vals = np.random.uniform(size=(num_train,))
-    train_ids = random_vals < train_frac
-    val_ids = np.logical_not(train_ids)
-
-    with open(train_file, "w") as outfile_h:
-        for r, s in zip(rgb_files_train_val[train_ids], seg_files_train_val[train_ids]):
-            outfile_h.write(f"{r},{s}\n")
-
-    with open(val_file, "w") as outfile_h:
-        for r, s in zip(rgb_files_train_val[val_ids], seg_files_train_val[val_ids]):
-            outfile_h.write(f"{r},{s}\n")
-
-    with open(test_file, "w") as outfile_h:
-        for r, s in zip(rgb_files_test, seg_files_test):
-            outfile_h.write(f"{r},{s}\n")
-
-    if write_test_video:
-        breakpoint()
-        rgb_files_test = [Path(common_root, f) for f in rgb_files_test]
-        test_video_filename = str(test_file.with_suffix(".mp4"))
-        write_imagelist_to_video(rgb_files_test, test_video_filename)
+    all_rgb_files, all_seg_files, common_root = get_train_val_test(
+        rgb_dir, seg_dir, test_frac, train_frac
+    )
+    write_summary_files(
+        all_rgb_files,
+        all_seg_files,
+        train_file,
+        val_file,
+        test_file,
+        common_root,
+        write_test_video,
+    )
 
 
 if __name__ == "__main__":
