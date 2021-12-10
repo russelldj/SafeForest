@@ -133,6 +133,10 @@ def symlink_mmseg_dataset(
         rgb_output_paths.append([])
         for f in files:
             output_path = Path(folder, f.name)
+            info = ub.cmd(f"unlink '{output_path}'")
+            output_path = str(output_path.with_suffix(""))
+            output_path = output_path.replace("rgb ", "")
+            output_path += "_rgb.png"
             input_path = Path(common_root, f)
             rgb_output_paths[-1].append(output_path)
             info = ub.cmd(f"ln -s '{input_path}' '{output_path}'")
@@ -144,6 +148,11 @@ def symlink_mmseg_dataset(
         seg_output_paths.append([])
         for f in files:
             output_path = Path(folder, f.name)
+            output_path = str(output_path.with_suffix(""))
+            output_path = output_path.replace("segmentation ", "")
+            output_path += "_segmentation.png"
+
+            info = ub.cmd(f"unlink '{output_path}'")
             input_path = Path(common_root, f)
             seg_output_paths[-1].append(output_path)
             info = ub.cmd(f"ln -s '{input_path}' '{output_path}'")
