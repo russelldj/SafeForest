@@ -29,6 +29,9 @@ def write_folder(
 
         if label:
             label_image = convert_image(f)
+            cb = plt.imshow(label_image)
+            plt.colorbar(cb)
+            plt.show()
             imwrite(output_f, label_image)
         else:
             ub.cmd(f"ln -s {f} {output_f}")
@@ -76,6 +79,15 @@ def main(train_dir, val_dir, output_dir, train_output_ext=None, val_output_ext=N
     ANN_DIR = "ann_dir"
 
     # choose_canonical_colors(train_labels + val_labels)
+    for f, img_f in zip(train_labels, train_rgb):
+        img = imread(img_f)
+        _, axs = plt.subplots(1, 2)
+
+        label_image = convert_image(f)
+        cb = axs[0].imshow(label_image, vmin=0, vmax=7)
+        axs[1].imshow(img)
+        plt.colorbar(cb)
+        plt.show()
 
     write_folder(train_rgb, Path(output_dir, IMG_DIR, "train"), RGB_EXT)
     write_folder(val_rgb, Path(output_dir, IMG_DIR, "val"), RGB_EXT)
