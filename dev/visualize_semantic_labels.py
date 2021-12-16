@@ -24,6 +24,18 @@ def parse_args():
     args = parser.parse_args()
     return args
 
+def show_colormaps(seg_map, num_classes=7):
+    square_size = int(np.ceil(np.sqrt(num_classes)))
+    vis = np.zeros((square_size, square_size, 3))
+    for index in range(num_classes):
+        i = index // square_size
+        j = index % square_size
+        vis[i, j] = seg_map[index]
+    vis = vis.astype(np.uint8)
+    vis = np.repeat(np.repeat(vis, repeats=100, axis=0), repeats=100, axis=1)
+    plt.imshow(vis)
+    plt.show()
+    breakpoint()
 
 def load_png_npy(filename):
     if filename.suffix == ".npy":
@@ -59,6 +71,8 @@ def visualize(seg_dir, image_dir, output_dir, seg_map_file=SEG_MAP):
 
 if __name__ == "__main__":
     args = parse_args()
+    seg_map = np.loadtxt(args.seg_map)
+    show_colormaps(seg_map)
     visualize(args.seg_dir, args.image_dir, args.output_dir, args.seg_map)
     # SEG_DIR = Path("data/P001/seg_left")
     # IMAGE_DIR = Path("data/P001/image_left")
