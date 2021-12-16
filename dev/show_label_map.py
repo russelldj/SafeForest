@@ -1,8 +1,22 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
+from config import RUI_CLASSES, RUI_PALETTE, YAMAHA_CLASSES, YAMAHA_PALETTE
+
 np.random.seed(123)
 palette = np.random.randint(0, 256, (256, 3), dtype=np.uint8)
+
+def show_label_colors(names, palette, title):
+    assert len(names) == len(palette)
+    fig, axs = plt.subplots(2, 4)
+    for i in range(len(names)):
+        name = names[i]
+        color = palette[i]
+        color = np.expand_dims(np.expand_dims(color, axis=0), axis=1)
+        axs[i // 4, i % 4].imshow(color)
+        axs[i // 4, i % 4].set_title(name, fontsize=20)
+    fig.suptitle(title, fontsize=20)
+    plt.show()
 
 labels_info = [
     {
@@ -89,15 +103,10 @@ names = [
     "sky",
     "stumps",
 ]
-print(palette)
-print(names)
-fig, axs = plt.subplots(2, 4)
-for i in range(7):
-    idx = ids[i]
-    name = names[idx]
-    color = palette[idx]
-    color = np.expand_dims(np.expand_dims(color, axis=0), axis=1)
-    axs[i // 4, i % 4].imshow(color)
-    axs[i // 4, i % 4].set_title(name)
-plt.show()
 
+
+names = RUI_CLASSES
+palette = RUI_PALETTE
+
+show_label_colors(RUI_CLASSES, RUI_PALETTE, "Rui labelmaps")
+show_label_colors(YAMAHA_CLASSES, YAMAHA_PALETTE, "Yamaha labelmaps")

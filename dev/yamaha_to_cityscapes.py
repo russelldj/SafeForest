@@ -84,7 +84,7 @@ def main(train_dir, val_dir, output_dir, train_output_ext=None, val_output_ext=N
         _, axs = plt.subplots(1, 2)
 
         label_image = convert_image(f)
-        cb = axs[0].imshow(label_image, vmin=0, vmax=7)
+        cb = axs[0].imshow(label_image, vmin=0, vmax=7, cmap="inferno")
         axs[1].imshow(img)
         plt.colorbar(cb)
         plt.show()
