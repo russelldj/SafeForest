@@ -2,41 +2,112 @@ import numpy as np
 import matplotlib.pyplot as plt
 from config import LABELS_INFO
 
-BISENET_COLORS = False
-if BISENET_COLORS:
-    np.random.seed(123)
-    palette = np.random.randint(0, 256, (256, 3), dtype=np.uint8)
-    palette = np.flip(palette, axis=1)
-else:
-    palette = np.loadtxt("dev/seg_rgbs.txt", dtype=np.uint8)
-    breakpoint()
+from config import RUI_CLASSES, RUI_PALETTE, YAMAHA_CLASSES, YAMAHA_PALETTE
 
-ids = [x["trainId"] for x in LABELS_INFO]
-names = [x["name"] for x in LABELS_INFO]
+np.random.seed(123)
+palette = np.random.randint(0, 256, (256, 3), dtype=np.uint8)
 
-# names = [
-#    "trunks",
-#    "stumps",
-#    "trails",
-#    "fuel",
-#    "tree canopy",
-#    "sky",
-#    "soil",
-# ]
-print(palette)
-print(names)
+def show_label_colors(names, palette, title):
+    assert len(names) == len(palette)
+    fig, axs = plt.subplots(2, 4)
+    for i in range(len(names)):
+        name = names[i]
+        color = palette[i]
+        color = np.expand_dims(np.expand_dims(color, axis=0), axis=1)
+        axs[i // 4, i % 4].imshow(color)
+        axs[i // 4, i % 4].set_title(name, fontsize=20)
+    fig.suptitle(title, fontsize=20)
+    plt.show()
 
-fig, axs = plt.subplots(2, 4)
-for i in range(7):
-    idx = ids[i]
-    name = names[idx]
-    color = palette[idx]
-    color = np.expand_dims(np.expand_dims(color, axis=0), axis=1)
-    axs[i // 4, i % 4].imshow(color)
-    axs[i // 4, i % 4].set_title(name)
+labels_info = [
+    {
+        "hasInstances": False,
+        "category": "sky",
+        "catid": 0,
+        "name": "sky",
+        "ignoreInEval": False,
+        "id": 0,
+        "color": [0, 0, 0],
+        "trainId": 0,
+    },
+    {
+        "hasInstances": False,
+        "category": "ground",
+        "catid": 1,
+        "name": "soil",
+        "ignoreInEval": False,
+        "id": 1,
+        "color": [111, 74, 0],
+        "trainId": 1,
+    },
+    {
+        "hasInstances": False,
+        "category": "ground",
+        "catid": 1,
+        "name": "trails",
+        "ignoreInEval": False,
+        "id": 2,
+        "color": [81, 0, 81],
+        "trainId": 2,
+    },
+    {
+        "hasInstances": False,
+        "category": "vegatation",
+        "catid": 2,
+        "name": "tree canopy",
+        "ignoreInEval": False,
+        "id": 3,
+        "color": [128, 64, 128],
+        "trainId": 3,
+    },
+    {
+        "hasInstances": False,
+        "category": "vegatation",
+        "catid": 2,
+        "name": "fuel",
+        "ignoreInEval": False,
+        "id": 4,
+        "color": [244, 35, 232],
+        "trainId": 4,
+    },
+    {
+        "hasInstances": False,
+        "category": "vegatation",
+        "catid": 2,
+        "name": "trunks",
+        "ignoreInEval": False,
+        "id": 5,
+        "color": [250, 170, 160],
+        "trainId": 5,
+    },
+    {
+        "hasInstances": False,
+        "category": "vegatation",
+        "catid": 2,
+        "name": "stumps",
+        "ignoreInEval": False,
+        "id": 6,
+        "color": [0, 170, 160],
+        "trainId": 6,
+    },
+]
 
-[(ax.set_xticks([]), ax.set_yticks([])) for ax in axs.flatten()]
+ids = [x["trainId"] for x in labels_info]
+names = [x["name"] for x in labels_info]
 
-plt.suptitle("Colors of classes in visualization")
-plt.savefig("vis/class_colors.png")
-plt.show()
+names = [
+    "trunks",
+    "soil",
+    "trails",
+    "fuel",
+    "tree canopy",
+    "sky",
+    "stumps",
+]
+
+
+names = RUI_CLASSES
+palette = RUI_PALETTE
+
+show_label_colors(RUI_CLASSES, RUI_PALETTE, "Rui labelmaps")
+show_label_colors(YAMAHA_CLASSES, YAMAHA_PALETTE, "Yamaha labelmaps")
