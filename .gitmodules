@@ -1,3 +1,6 @@
 [submodule "submodules/mmsegmentation"]
 	path = submodules/mmsegmentation
 	url = git@github.com:russelldj/mmsegmentation.git
+[submodule "submodules/semantic_segmentation_node"]
+	path = submodules/semantic_segmentation_node
+	url = git@github.com:russelldj/CMU_Mask-R-CNN_ROS.git
