@@ -106,14 +106,41 @@ YAMAHA_CLASSES = (
 
 RUI_PALETTE = np.array(
     [
-        [107, 190, 118],
-        [137, 249, 83],
-        [235, 244, 247],
-        [113, 44, 216],
-        [214, 27, 52],
-        [60, 206, 22],
-        [18, 5, 149],
+        [0, 0, 255],
+        [150, 75, 0],
+        [140, 146, 172],
+        [0, 255, 0],
+        [255, 0, 0],
+        [255, 0, 255],
+        [255, 0, 128],
     ]
 )
 
 RUI_CLASSES = ("sky", "soil", "trails", "canopy", "fuel", "trunks", "stumps")
+
+RUI_YAMAHA_CLASSES = (
+    "sky",
+    "traversable ground",
+    "traversable vegetation",
+    "untraversable vegetation",
+    "obstacle",
+    "trunk",
+)
+RUI_YAMAHA_PALETTE = np.array(
+    [
+        [0, 0, 255],
+        [128, 128, 128],
+        [150, 75, 0],
+        [0, 255, 0],
+        [255, 0, 0],
+        [255, 0, 255],
+    ]
+)
+
+
+RGB_EXT = "_rgb"
+SEG_EXT = "_seg"
+IMG_DIR = "img_dir"
+ANN_DIR = "ann_dir"
+TRAIN_DIR = "train"
+VAL_DIR = "val"
