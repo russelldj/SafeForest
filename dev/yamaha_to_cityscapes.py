@@ -5,6 +5,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from imageio import imread, imwrite
 from scipy import spatial
+from config import RGB_EXT, SEG_EXT, IMG_DIR, ANN_DIR
 
 SAVED_CLASSES = "dev/classes.npy"
 
@@ -72,11 +73,6 @@ def main(train_dir, val_dir, output_dir, train_output_ext=None, val_output_ext=N
     train_labels = [x for x in train_files if "label" in x.name]
     val_rgb = [x for x in val_files if "rgb" in x.name]
     val_labels = [x for x in val_files if "label" in x.name]
-
-    RGB_EXT = "_rgb"
-    SEG_EXT = "_seg"
-    IMG_DIR = "img_dir"
-    ANN_DIR = "ann_dir"
 
     # choose_canonical_colors(train_labels + val_labels)
     for f, img_f in zip(train_labels, train_rgb):

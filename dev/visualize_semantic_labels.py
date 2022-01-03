@@ -24,6 +24,7 @@ def parse_args():
     args = parser.parse_args()
     return args
 
+
 def show_colormaps(seg_map, num_classes=7):
     square_size = int(np.ceil(np.sqrt(num_classes)))
     vis = np.zeros((square_size, square_size, 3))
@@ -36,6 +37,7 @@ def show_colormaps(seg_map, num_classes=7):
     plt.imshow(vis)
     plt.show()
     breakpoint()
+
 
 def load_png_npy(filename):
     if filename.suffix == ".npy":

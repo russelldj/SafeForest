@@ -8,11 +8,13 @@ import numpy as np
 from scipy import spatial
 from sklearn import metrics
 
-from config import LABELS_INFO
+from config import LABELS_INFO, RUI_PALETTE
 from cf_matrix import make_confusion_matrix
 
 np.random.seed(123)
-PALETTE = np.random.randint(0, 256, (256, 3), dtype=np.uint8)
+#PALETTE = np.random.randint(0, 256, (256, 3), dtype=np.uint8)
+PALETTE = RUI_PALETTE
+PALETTE = np.flip(PALETTE, axis=1)
 names = [x["name"] for x in LABELS_INFO]
 
 
@@ -87,5 +89,5 @@ def vis(lognorm=False):
 
 if __name__ == "__main__":
     args = parse_args()
-    vis()
-    # main(args.pred_video, args.gt_folder, args.test_file)
+    #vis()
+    main(args.pred_video, args.gt_folder, args.test_file)
