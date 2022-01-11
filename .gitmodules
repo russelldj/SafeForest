@@ -4,3 +4,9 @@
 [submodule "submodules/semantic_segmentation_node"]
 	path = submodules/semantic_segmentation_node
 	url = git@github.com:russelldj/CMU_Mask-R-CNN_ROS.git
+[submodule "submodules/CMU_Aggregation_Node"]
+	path = submodules/CMU_Aggregation_Node
+	url = git@github.com:russelldj/CMU_Aggregation_Node.git
+[submodule "submodules/CMU_Camera_Projection"]
+	path = submodules/CMU_Camera_Projection
+	url = git@github.com:aaronzberger/CMU_Camera_Projection.git
