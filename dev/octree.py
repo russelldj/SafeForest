@@ -5,14 +5,18 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 import pyrr
+from timerit import Timerit
 
 
 def intersect(octree, ray):
-    best_indices = None
+    # Hack so it's passed by reference
+    best_node = [None, None]
     best_dist = np.inf
 
-    def f_traverse(node, node_info, best_dist=best_dist, ray=ray):
-        early_stop = False
+    # This is horribly redundant because
+    def f_traverse(
+        node, node_info, best_dist=best_dist, ray=ray, best_node=best_node,
+    ):
         aabb = pyrr.aabb.create_from_points(
             np.asarray([node_info.origin, node_info.origin + node_info.size])
         )
@@ -20,54 +24,35 @@ def intersect(octree, ray):
 
         intersected = res is not None
 
-        if intersected and isinstance(node, o3d.geometry.OctreeLeafNode):
+        if intersected:
             dist = np.linalg.norm(res - ray[0])
-            if dist < best_dist:
-                best_dist = dist
-                best_indices = node.indices
 
+            # Check the logic here. My thought was if it intersects farther away than the current best leaf,
+            # it can't be right. Check whether we need an epsilon here to avoid floating point error.
+            # I don't think so because leaf nodes are the only ones that produce a distance.
+            if dist > best_dist:
+                return True
+
+            # The second part of this check should be redundant, down to issues with epsilon
+            if isinstance(node, o3d.geometry.OctreeLeafNode) and dist < best_dist:
+                best_dist = dist
+                best_node[0] = node
+                best_node[1] = node_info
+
+        # The return is whether to NOT traverse the child nodes
         return not intersected
 
-        if isinstance(node, o3d.geometry.OctreeInternalNode):
-            if isinstance(node, o3d.geometry.OctreeInternalPointNode):
-                n = 0
-                for child in node.children:
-                    if child is not None:
-                        n += 1
-                print(
-                    "{}{}: Internal node at depth {} has {} children and {} points ({})".format(
-                        "    " * node_info.depth,
-                        node_info.child_index,
-                        node_info.depth,
-                        n,
-                        len(node.indices),
-                        node_info.origin,
-                    )
-                )
-
-                # we only want to process nodes / spatial regions with enough points
-                early_stop = len(node.indices) < 250
-            if isinstance(node, o3d.geometry.OctreePointColorLeafNode):
-                print(
-                    "{}{}: Leaf node at depth {} has {} points with origin {}".format(
-                        "    " * node_info.depth,
-                        node_info.child_index,
-                        node_info.depth,
-                        len(node.indices),
-                        node_info.origin,
-                    )
-                )
-        else:
-            raise NotImplementedError("Node type not recognized!")
-
-        # early stopping: if True, traversal of children of the current node will be skipped
-        return early_stop
-
     octree.traverse(f_traverse)
-    return ID
+
+    # This is set by reference within the traversal
+    return best_node
 
 
-FILE = Path(Path.home(), "Downloads/map_156.txt")
+# FILE = Path(Path.home(), "Downloads/map_156.txt")
+FILE = Path(
+    Path.home(),
+    "data/SafeForestData/datasets/portugal_UAV_12_21/derived/safe_forest_2/slam_outputs/PointCloud/2022-01-14-17-44/map_64.txt",
+)
 OUTPUT_FILE = Path(Path.home(), "data/SafeForestData/temp/mesh.xyz")
 
 data = pd.read_csv(FILE, names=("x", "y", "z", "count", "unixtime"))
@@ -91,13 +76,21 @@ cloud.scale(
 cloud.colors = o3d.utility.Vector3dVector(colors)
 # o3d.visualization.draw_geometries([cloud])
 
-print("octree division")
-octree = o3d.geometry.Octree(max_depth=4)
-octree.convert_from_point_cloud(cloud, size_expand=0.01)
-ray = np.array([[0, 0, 0], [23.9061 + 0.5, -24.0909 + 0.5, 0.0428392 + 0.5]])
-intersect(octree=octree, ray=ray)
+print()
 
-scene = o3d.t.geometry.RaycastingScene()
+sample_point = np.asarray(cloud.points)[100]
+
+print("octree division")
+octree = o3d.geometry.Octree(max_depth=10)
+octree.convert_from_point_cloud(cloud, size_expand=0.01)
+ray = np.array([[0, 0, 0], sample_point])
+
+t1 = Timerit(1000)
+
+for _ in t1:
+    intersected_node = intersect(octree=octree, ray=ray)
+
+print("t1.total_time = %r" % (t1.total_time,))
 breakpoint()
 
 o3d.visualization.draw_geometries([octree])
