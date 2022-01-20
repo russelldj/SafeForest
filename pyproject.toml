@@ -21,6 +21,12 @@ open3d = "^0.14.1"
 pyrr = "^0.10.3"
 timerit = "^0.3.0"
 distinctipy = "^1.2.1"
+pyvista = "^0.33.2"
+PVGeo = "^2.1.0"
+octomap-python = "^1.8.0"
+glooey = "^0.3.6"
+trimesh = "^3.9.42"
+imgviz = "^1.4.1"
 
 [tool.poetry.dev-dependencies]
 black = "^21.10b0"
