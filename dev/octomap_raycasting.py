@@ -5,6 +5,7 @@ from pathlib import Path
 import glooey
 
 # import imgviz
+import matplotlib.pyplot as plt
 import numpy as np
 import octomap
 import pandas as pd
@@ -122,42 +123,7 @@ def visualize(occupied, empty, K, width, height, rgb, pcd, mask, resolution, aab
     pyglet.app.run()
 
 
-def create_camera_points(vis=False):
-    K = np.array([[719.4674, 0, 682.85536], [0, 719.4674, 555.98205], [0, 0, 1]])
-    # fx: 719.4674
-    # fy: 719.4674
-    # cx: 682.85536
-    # cy: 555.98205
-    imsize = (1384, 1032)
-
-    rotation_matrix = np.array([[1, 0, 0], [0, 0, 1], [0, 1, 0]])
-    translation = np.array([1, 1, 1])
-
-    points = create_img(K, imsize=imsize)
-    points = np.transpose(np.dot(rotation_matrix, points.transpose()))
-    points = points + translation
-    cloud = pv.PolyData(points)
-
-    plotter = pv.Plotter()
-    sphere = pv.Sphere(radius=0.1)
-    plotter.add_mesh(sphere)
-    plotter.add_mesh(cloud)
-    plotter.show()
-
-
-def main():
-    data = imgviz.data.arc2017()
-    camera_info = data["camera_info"]
-    K = np.array(camera_info["K"]).reshape(3, 3)
-    rgb = data["rgb"]
-    pcd = pointcloud_from_depth(
-        data["depth"], fx=K[0, 0], fy=K[1, 1], cx=K[0, 2], cy=K[1, 2]
-    )
-
-    nonnan = ~np.isnan(pcd).any(axis=2)
-    mask = np.less(pcd[:, :, 2], 2)
-
-    resolution = 1
+def create_octree(resolution=1):
     octree = octomap.OcTree(resolution)
 
     FILE = Path(Path.home(), "Downloads/fullCloud_labeled.txt")
@@ -175,21 +141,79 @@ def main():
             maxrange=-1,
             lazy_eval=True,  # Hack to avoid computing freespace
         )
+    return octree
 
-    location = xyz[10000]
-    print(location)
-    origin = np.array([0, 0, 12.5], dtype=np.float64)
-    direction = location - origin
 
-    for _ in Timerit(num=1, verbose=2):
-        for i in range(1500000):
-            end = np.array([0, 0, 0], dtype=np.float64)
-            ret = octree.castRay(origin, direction, end, True)
-            key = octree.coordToKey(end)
-            node = octree.search(key)
+def create_camera_points(rotation_matrix, imsize=(1384, 1032), vis=False):
+    K = np.array([[719.4674, 0, 682.85536], [0, 719.4674, 555.98205], [0, 0, 1]])
+    # fx: 719.4674
+    # fy: 719.4674
+    # cx: 682.85536
+    # cy: 555.98205
 
-    # bool castRay(point3d& origin, point3d& direction, point3d& end,
-    #             bool ignoreUnknownCells, double maxRange)
+    points = create_img(K, imsize=imsize)
+    points = np.transpose(np.dot(rotation_matrix, points.transpose()))
+
+    if vis:
+        cloud = pv.PolyData(points)
+        plotter = pv.Plotter()
+        sphere = pv.Sphere(radius=0.1)
+        plotter.add_mesh(sphere)
+        plotter.add_mesh(cloud)
+        plotter.show()
+
+    return points
+
+
+def read_trajectory(index=0):
+    labels = ("X", "Y", "Z", "q_x", "q_y", "q_z", "q_w", "timeStamp")
+    FILE = Path(
+        Path.home(),
+        "data/SafeForestData/datasets/portugal_UAV_12_21/derived/safe_forest_2/slam_outputs/Odom_camera_left/2022-01-14-17-44/odom.txt",
+    )
+    data = pd.read_csv(FILE, names=labels)
+    loc = data.iloc[index, :3].to_numpy()
+    quat = data.iloc[index, 3:7].to_numpy()
+    rot = R.from_quat(quat)
+
+    rot_matrix = rot.as_matrix()
+    return loc, rot_matrix
+
+
+def main():
+    data = imgviz.data.arc2017()
+    camera_info = data["camera_info"]
+    K = np.array(camera_info["K"]).reshape(3, 3)
+    rgb = data["rgb"]
+    pcd = pointcloud_from_depth(
+        data["depth"], fx=K[0, 0], fy=K[1, 1], cx=K[0, 2], cy=K[1, 2]
+    )
+
+    nonnan = ~np.isnan(pcd).any(axis=2)
+    mask = np.less(pcd[:, :, 2], 2)
+
+    resolution = 1
+    octree = create_octree(resolution)
+
+    origin, rotation_matrix = read_trajectory(index=1000)
+
+    IMSIZE = (1384, 1032)
+    directions = create_camera_points(rotation_matrix, IMSIZE)
+
+    num_points = len(directions)
+
+    END = np.array([0, 0, 0], dtype=np.float64)
+    for _ in Timerit(num=3, verbose=2):
+        dists = np.zeros(num_points)
+        for i in range(num_points):
+            end = END.copy()
+            ret = octree.castRay(origin, directions[i], end, True)
+            if np.any(end != END):
+                dist = np.linalg.norm(end - origin)
+                dists[i] = dist
+        dists = np.reshape(dists, (IMSIZE[1], IMSIZE[0]))
+        plt.imshow(dists)
+        plt.show()
 
     occupied, empty = octree.extractPointCloud()
 
@@ -211,5 +235,4 @@ def main():
 
 
 if __name__ == "__main__":
-    create_camera_points()
     main()
