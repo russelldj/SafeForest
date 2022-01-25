@@ -1,12 +1,51 @@
 import numpy as np
 import os
 from pathlib import Path
-from ubelt import ensuredir
+from ubelt import ensuredir, symlink
 from imageio import imwrite
 from safeforest.config import ANN_DIR, IMG_DIR, TRAIN_DIR, VAL_DIR, SEG_EXT, RGB_EXT
 
 
-def write_cityscapes_file(img, output_folder, index, is_ann, num_train):
+def pad_filename(filename: Path, pad_length: int = 6):
+    """
+    filename:
+        The filename to pad. Can be relative or absolute path
+    pad_length:
+        How digits it should have
+
+    returns:
+        The padded filename, at the same depth it was originally
+    """
+    parent = filename.parent
+    stem = int(filename.stem)
+    extension = filename.suffix
+    formatted_stem = f"{stem:0{pad_length}d}"
+    breakpoint()
+    output = Path(parent, formatted_stem + extension)
+    return output
+
+
+def get_files(folder: Path, pattern: str, sort=True):
+    """
+    args:
+
+    folder:
+        The input folder
+    pattern:
+        The file to search for within that folder
+    sort:
+        Return the sorted generator
+
+    returns:
+        a list or generator of Path 's 
+    """
+    files = folder.glob(pattern)
+    if sort:
+        files = sorted(files)
+    return files
+
+
+def generate_output_file(output_folder, index, is_ann, num_train):
     output_sub_folder = Path(
         output_folder,
         ANN_DIR if is_ann else IMG_DIR,
@@ -15,8 +54,17 @@ def write_cityscapes_file(img, output_folder, index, is_ann, num_train):
     ensuredir(output_sub_folder, mode=0o0755)
     filename = f"{index:06d}{SEG_EXT if is_ann else RGB_EXT}.png"
     output_filepath = Path(output_sub_folder, filename)
+    return output_filepath
 
+
+def write_cityscapes_file(img, output_folder, index, is_ann, num_train):
+    output_filepath = generate_output_file(output_folder, index, is_ann, num_train)
     imwrite(output_filepath, img)
+
+
+def link_cityscapes_file(img_path, output_folder, index, is_ann, num_train):
+    output_filepath = generate_output_file(output_folder, index, is_ann, num_train)
+    symlink(img_path, output_filepath)
 
 
 def get_train_val_test(
