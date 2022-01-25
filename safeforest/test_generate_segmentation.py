@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from imageio import imwrite
 from generate_segmentation import produce_segmentations
-from create_instance import create_instance_mask
+from safeforest.vis.create_instance import create_instance_mask
 
 from pathlib import Path
 
