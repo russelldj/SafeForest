@@ -120,20 +120,20 @@ RUI_CLASSES = ("sky", "soil", "trails", "canopy", "fuel", "trunks", "stumps")
 
 RUI_YAMAHA_CLASSES = (
     "sky",
-    "traversable ground",
-    "traversable vegetation",
-    "untraversable vegetation",
+    "traversable_ground",
+    "traversable_vegetation",
+    "untraversable_vegetation",
     "obstacle",
     "trunk",
 )
 RUI_YAMAHA_PALETTE = np.array(
     [
-        [0, 0, 255],
-        [128, 128, 128],
-        [150, 75, 0],
-        [0, 255, 0],
-        [255, 0, 0],
-        [255, 0, 255],
+        [42, 125, 209],
+        [128, 129, 131],
+        [52, 209, 183],
+        [13, 53, 26],
+        [250, 50, 83],
+        [184, 61, 245],
     ]
 )
 

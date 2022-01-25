@@ -5,14 +5,12 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 import ubelt as ub
-from config import RUI_YAMAHA_PALETTE
+from dev.dataset_creation.merge_classes import visualize_with_palette
+from dev.visualization.show_seg_video import blend_images_gray
 from imageio import imread, imwrite
-from merge_classes import visualize_with_palette
+from safeforest.config import RUI_YAMAHA_CLASSES, RUI_YAMAHA_PALETTE
 from scipy.ndimage import gaussian_filter1d
-from show_seg_video import blend_images_gray
 from tqdm import tqdm
-
-from dev.config import RUI_YAMAHA_CLASSES, RUI_YAMAHA_PALETTE
 
 plt.style.use("./dev/report.mplstyle")
 

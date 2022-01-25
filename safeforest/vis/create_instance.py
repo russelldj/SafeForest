@@ -1,11 +1,8 @@
-import enum
-import os
 from typing import Union
 
 import numpy as np
 import distinctipy
 from skimage import measure
-import matplotlib.pyplot as plt
 
 BLACK = np.array([0, 0, 0])
 
@@ -65,7 +62,8 @@ def create_instance_mask(
         ID_array[matching] = labels[matching] + ID_counter
         ID_counter += num_regions
 
-    distinct_colors = np.array(distinctipy.get_colors(ID_counter + 1))
+    distinct_colors = np.load("vis/unique_colors.npy")
+    # distinct_colors = np.array(distinctipy.get_colors(ID_counter + 1))
 
     if np.any(np.all(np.array([BLACK]) == distinct_colors, axis=1)):
         # Switch black to the first row if present

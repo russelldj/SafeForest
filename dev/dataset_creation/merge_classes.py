@@ -1,30 +1,18 @@
 import argparse
-from pathlib import Path
 import itertools
+from pathlib import Path
 
-from imageio import imread, imwrite
-import matplotlib.pyplot as plt
 import cv2
+import matplotlib.pyplot as plt
 import numpy as np
-from ubelt import ensuredir
-from tqdm import tqdm
-
-from img_utils import lap2_focus_measure
-from config import (
-    RUI_PALETTE,
-    YAMAHA_PALETTE,
-    RUI_YAMAHA_PALETTE,
-    RGB_EXT,
-    SEG_EXT,
-    IMG_DIR,
-    ANN_DIR,
-    TRAIN_DIR,
-    VAL_DIR,
-)
-
-
-from show_seg_video import blend_images_gray
+from dev.utils.img_utils import lap2_focus_measure
+from dev.visualization.show_seg_video import blend_images_gray
+from safeforest.config import RUI_PALETTE, RUI_YAMAHA_PALETTE, YAMAHA_PALETTE
+from safeforest.dataset_generation.class_utils import combine_classes
+from safeforest.dataset_generation.file_utils import write_cityscapes_file
+from safeforest.vis.visualize_classes import visualize_with_palette
 from scipy import spatial
+from tqdm import tqdm
 
 """
 Take the predictions on two videos and merge them
@@ -46,20 +34,6 @@ REMAP = np.asarray(
 )
 
 
-def visualize_with_palette(index_image, palette):
-    """
-    index_image : np.ndarray
-        The predicted semantic map with indices. (H,W)
-    palette : np.ndarray
-        The colors for each index. (N classes,3)
-    """
-    h, w = index_image.shape
-    index_image = index_image.flatten()
-    colored_image = palette[index_image]
-    colored_image = np.reshape(colored_image, (h, w, 3))
-    return colored_image.astype(np.uint8)
-
-
 def compute_nearest_class(pred_image, palette):
     """
     pred_image : np.ndarray
@@ -75,33 +49,6 @@ def compute_nearest_class(pred_image, palette):
     pred_ids = np.argmin(dists, axis=1)
     pred_image = np.reshape(pred_ids, img_shape)
     return pred_image
-
-
-def combine_classes(first_image, second_image, remap):
-    """
-    remap : np.ndarray
-        An integer array where the element at the ith, jth location represents the class
-        when a pixel in the first image has value i and the pixel in the second image has
-        value j.
-    """
-    img_shape = first_image.shape
-    first_image, second_image = [x.flatten() for x in (first_image, second_image)]
-    remapped = remap[first_image, second_image]
-    remapped = np.reshape(remapped, img_shape)
-    return remapped
-
-
-def write_cityscapes_file(img, output_folder, index, is_ann, num_train):
-    output_sub_folder = Path(
-        output_folder,
-        ANN_DIR if is_ann else IMG_DIR,
-        TRAIN_DIR if index < num_train else VAL_DIR,
-    )
-    ensuredir(output_sub_folder, mode=0o0755)
-    filename = f"{index:06d}{SEG_EXT if is_ann else RGB_EXT}.png"
-    output_filepath = Path(output_sub_folder, filename)
-
-    imwrite(output_filepath, img)
 
 
 def main(

@@ -5,8 +5,9 @@ from functools import reduce
 import os
 
 import ubelt as ub
+from safeforest.dataset_generation.file_utils import get_train_val_test
 
-from video_utils import write_imagelist_to_video
+from dev.utils.video_utils import write_imagelist_to_video
 
 TRAIN_VAL_TEST = ("train", "val", "test")
 
@@ -47,7 +48,12 @@ def describe_max(seg_files):
 
 
 def get_train_val_test(
-    input_rgb_dir, input_seg_dir, test_frac, train_frac, extension="*.png", shuffle_test=True
+    input_rgb_dir,
+    input_seg_dir,
+    test_frac,
+    train_frac,
+    extension="*.png",
+    shuffle_test=True,
 ):
     rgb_files = np.asarray(sorted(input_rgb_dir.glob(extension)))
     seg_files = np.asarray(sorted(input_seg_dir.glob(extension)))
@@ -60,7 +66,9 @@ def get_train_val_test(
     num_train = int((1 - test_frac) * rgb_files.shape[0])
     if shuffle_test:
         train_val_inds = np.zeros((rgb_files.shape[0],), dtype=bool)
-        train_val_locs = np.argsort(np.random.uniform(size=(len(rgb_files),)))[:num_train]
+        train_val_locs = np.argsort(np.random.uniform(size=(len(rgb_files),)))[
+            :num_train
+        ]
         train_val_inds[train_val_locs] = True
         test_inds = np.logical_not(train_val_inds)
         rgb_files_test = rgb_files[test_inds]
@@ -72,7 +80,6 @@ def get_train_val_test(
         seg_files_test = seg_files[num_train:]
         rgb_files_train_val = rgb_files[:num_train]
         seg_files_train_val = seg_files[:num_train]
-
 
     random_vals = np.random.uniform(size=(num_train,))
     train_ids = random_vals < train_frac

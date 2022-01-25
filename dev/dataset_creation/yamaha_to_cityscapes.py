@@ -5,9 +5,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 from imageio import imread, imwrite
 from scipy import spatial
-from config import RGB_EXT, SEG_EXT, IMG_DIR, ANN_DIR
+from safeforest.config import RGB_EXT, SEG_EXT, IMG_DIR, ANN_DIR
 
-SAVED_CLASSES = "dev/classes.npy"
+SAVED_CLASSES = "vis/classes.npy"
 
 
 def parse_args():
