@@ -3,6 +3,8 @@
 from pathlib import Path
 
 import glooey
+import imgviz
+import matplotlib as mpl
 
 # import imgviz
 import matplotlib.pyplot as plt
@@ -11,13 +13,17 @@ import octomap
 import pandas as pd
 import pyglet
 import pyvista as pv
-import tqdm
-import imgviz
 import trimesh
 import trimesh.transformations as tf
 import trimesh.viewer
-from timerit import Timerit
+import ubelt as ub
 from scipy.spatial.transform import Rotation as R
+from timerit import Timerit
+from tqdm import tqdm
+from imageio import imwrite
+
+END = np.array([0, 0, 0], dtype=np.float64)
+OUTPUT_DIR = Path("vis", "depth_renders")
 
 
 def pointcloud_from_depth(depth, fx, fy, cx, cy):
@@ -134,7 +140,7 @@ def create_octree(resolution=1):
     labels = labels.to_numpy()
 
     CHUNK_SIZE = 1000000
-    for i in tqdm.tqdm(range(0, len(xyz), CHUNK_SIZE)):
+    for i in range(0, len(xyz), CHUNK_SIZE):
         octree.insertPointCloud(
             pointcloud=xyz[i : i + CHUNK_SIZE],
             origin=np.array([0, 0, 0], dtype=float),
@@ -195,25 +201,30 @@ def main():
     resolution = 1
     octree = create_octree(resolution)
 
-    origin, rotation_matrix = read_trajectory(index=1000)
-
     IMSIZE = (1384, 1032)
-    directions = create_camera_points(rotation_matrix, IMSIZE)
 
-    num_points = len(directions)
+    ub.ensuredir(OUTPUT_DIR, mode=0o0755)
 
-    END = np.array([0, 0, 0], dtype=np.float64)
-    for _ in Timerit(num=3, verbose=2):
-        dists = np.zeros(num_points)
-        for i in range(num_points):
-            end = END.copy()
-            ret = octree.castRay(origin, directions[i], end, True)
-            if np.any(end != END):
-                dist = np.linalg.norm(end - origin)
-                dists[i] = dist
-        dists = np.reshape(dists, (IMSIZE[1], IMSIZE[0]))
-        plt.imshow(dists)
-        plt.show()
+    if False:
+        for i in tqdm(range(0, 1500, 50)):
+            # TODO optimize this
+            origin, rotation_matrix = read_trajectory(index=i)
+            directions = create_camera_points(rotation_matrix, IMSIZE)
+            num_points = len(directions)
+            dists = np.zeros(num_points)
+            for j in range(num_points):
+                end = END.copy()
+                octree.castRay(origin, directions[j], end, True)
+                if np.any(end != END):
+                    dist = np.linalg.norm(end - origin)
+                    dists[j] = dist
+            dists = np.reshape(dists, (IMSIZE[1], IMSIZE[0]))
+
+            cmap = mpl.colormaps["viridis"]
+            norm = mpl.colors.Normalize()
+            colors = cmap(norm(dists))
+            output_file = Path(OUTPUT_DIR, f"depth_{i:06d}.png")
+            imwrite(output_file, colors)
 
     occupied, empty = octree.extractPointCloud()
 

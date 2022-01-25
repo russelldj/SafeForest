@@ -49,25 +49,30 @@ def intersect(octree, ray):
 
 
 # FILE = Path(Path.home(), "Downloads/map_156.txt")
-FILE = Path(
-    Path.home(),
-    "data/SafeForestData/datasets/portugal_UAV_12_21/derived/safe_forest_2/slam_outputs/PointCloud/2022-01-14-17-44/map_64.txt",
-)
+# FILE = Path(
+#    Path.home(),
+#    "data/SafeForestData/datasets/portugal_UAV_12_21/derived/safe_forest_2/slam_outputs/PointCloud/2022-01-14-17-44/map_64.txt",
+# )
+FILE = Path(Path.home(), "Downloads/fullCloud_labeled.txt")
 OUTPUT_FILE = Path(Path.home(), "data/SafeForestData/temp/mesh.xyz")
 
-data = pd.read_csv(FILE, names=("x", "y", "z", "count", "unixtime"))
+data = pd.read_csv(FILE, names=("x", "y", "z", "labels"))
 xyz = data.iloc[:, :3]
+labels = data.iloc[:, 3]
 xyz = xyz.to_numpy()
+labels = labels.to_numpy()
+
+COLOR_MAP = np.array([[128, 128, 128], [0, 255, 0], [150, 75, 0]])
 
 cloud = o3d.geometry.PointCloud()
 cloud.points = o3d.utility.Vector3dVector(xyz)
-# o3d.io.write_point_cloud(str(OUTPUT_FILE), cloud)
 
-zs = xyz[:, 2]
-print(zs.shape)
-cmap = mpl.colormaps["viridis"]
-norm = mpl.colors.Normalize()
-colors = cmap(norm(zs))[:, :3]
+# zs = xyz[:, 2]
+# print(zs.shape)
+# cmap = mpl.colormaps["viridis"]
+# norm = mpl.colors.Normalize()
+# colors = cmap(norm(zs))[:, :3]
+colors = COLOR_MAP[labels] / 255.0
 
 # fit to unit cube
 cloud.scale(
@@ -75,8 +80,6 @@ cloud.scale(
 )
 cloud.colors = o3d.utility.Vector3dVector(colors)
 # o3d.visualization.draw_geometries([cloud])
-
-print()
 
 sample_point = np.asarray(cloud.points)[100]
 
@@ -86,7 +89,6 @@ octree.convert_from_point_cloud(cloud, size_expand=0.01)
 ray = np.array([[0, 0, 0], sample_point])
 
 t1 = Timerit(1000)
-
 for _ in t1:
     intersected_node = intersect(octree=octree, ray=ray)
 

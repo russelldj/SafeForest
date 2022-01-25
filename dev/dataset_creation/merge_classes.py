@@ -7,6 +7,9 @@ import matplotlib.pyplot as plt
 import cv2
 import numpy as np
 from ubelt import ensuredir
+from tqdm import tqdm
+
+from img_utils import lap2_focus_measure
 from config import (
     RUI_PALETTE,
     YAMAHA_PALETTE,
@@ -109,7 +112,12 @@ def main(
     first_palette=YAMAHA_PALETTE,
     second_palette=RUI_PALETTE,
     write_video=False,
+    sharpness_threshold=1000,
 ):
+    """
+    sharpness_theshold: float | None
+        Discard images that are not this sharp. If None, keep all images.
+    """
     raw_cap = cv2.VideoCapture(str(raw_video))
     first_cap = cv2.VideoCapture(str(first_video))
     second_cap = cv2.VideoCapture(str(second_video))
@@ -118,13 +126,20 @@ def main(
     num_train = int(num_frames * 0.85)
 
     video_writer = None
+    sharps = []
 
-    for i in itertools.count(start=0):
+    for i in tqdm(itertools.count(start=0)):
         raw_ret, raw_img = raw_cap.read()
         first_ret, first_pred = first_cap.read()
         second_ret, second_pred = second_cap.read()
         if False in (raw_ret, first_ret, second_ret):
             break
+
+        if sharpness_threshold is not None:
+            sharpness = lap2_focus_measure(raw_img, np.ones_like(raw_img).astype(bool))
+            sharps.append(sharpness)
+            if sharpness < sharpness_threshold:
+                continue
 
         if video_writer is None and write_video:
             frame_height, frame_width, _ = raw_img.shape
@@ -155,6 +170,15 @@ def main(
             write_cityscapes_file(
                 combined_classes, output, i, is_ann=True, num_train=num_train
             )
+    xs = np.arange(len(sharps))
+    xs = xs / 15.0
+    plt.style.use("./dev/report.mplstyle")
+    plt.plot(xs, sharps)
+    plt.xlabel("Seconds")
+    plt.ylabel("LAP2 sharpness metric")
+    plt.savefig("vis/sharpness")
+    plt.show()
+
     if write_video:
         video_writer.release()
         # TODO write out the data
@@ -187,6 +211,6 @@ if __name__ == "__main__":
         args.raw_video,
         args.first_video,
         args.second_video,
-        args.output_video,
+        args.output,
         args.write_video,
     )

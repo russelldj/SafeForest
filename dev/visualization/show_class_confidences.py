@@ -78,24 +78,26 @@ def main():
 
     # start looping
     try:
-        i = 0
+        k = 0
         while True:
             flag, frame = cap.read()
             if not flag:
                 break
 
             # test a single image
-            if i % 100 == 0:
+            if k % 40 == 0:
                 result = inference_segmentor(model, frame, return_probabilities=True)[0]
                 fig, axes = plt.subplots(2, 4)
                 for i in range(2):
                     for j in range(3):
-                        axes[i, j].imshow(result[..., 3 * i + j])
+                        axes[i, j].imshow(result[..., 3 * i + j], vmin=0, vmax=1)
                         axes[i, j].set_title(RUI_CLASSES[3 * i + j])
                 axes[0, 3].imshow(np.flip(frame, axis=2))
                 axes[0, 3].set_title("Image")
-                plt.show()
-            i += 1
+
+                plt.savefig(f"vis/confidences/{k:06d}.png")
+                plt.close()
+            k += 1
 
     finally:
         if writer:
