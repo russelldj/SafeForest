@@ -4,6 +4,33 @@ import argparse
 import glob
 
 
+class SmartVideoWriter:
+    def __init__(self, output_filename: str, fourcc: str = "MJPG", fps=15):
+        self.output_filename = str(output_filename)
+        self.fourcc = cv2.VideoWriter_fourcc(*fourcc)
+        self.fps = fps
+        self.video_writer = None
+
+    def __init_writer(self, img_size):
+        """
+        imgsize:
+            The image size in pixels, WxH
+        """
+        self.video_writer = cv2.VideoWriter(
+            self.output_filename, self.fourcc, self.fps, img_size, True
+        )
+
+    def write(self, img):
+        if self.video_writer is None:
+            img_size = (img.shape[1], img.shape[0])
+            self.__init_writer(img_size)
+        self.video_writer.write(img)
+
+    def release(self):
+        if self.video_writer is not None:
+            self.video_writer.release()
+
+
 def break_videos(video_folder, output_folder):
     if video_folder[-1] == "/":
         # make sure the formating is consistent
