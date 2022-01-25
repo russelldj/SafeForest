@@ -27,6 +27,7 @@ octomap-python = "^1.8.0"
 glooey = "^0.3.6"
 trimesh = "^3.9.42"
 imgviz = "^1.4.1"
+Shapely = "^1.8.0"
 
 [tool.poetry.dev-dependencies]
 black = "^21.10b0"
