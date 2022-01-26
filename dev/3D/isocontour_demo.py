@@ -1,5 +1,6 @@
 import argparse
 from pathlib import Path
+from telnetlib import GA
 
 import distinctipy
 import numpy as np
@@ -17,14 +18,26 @@ DEFAULT_POINTCLOUD = Path(
 )
 
 
-def score_grid(min_max_extents, sampling_resolution: float, gmm: GaussianMixture):
+def score_grid(
+    min_max_extents,
+    sampling_resolution: float,
+    gmm: GaussianMixture,
+    max_pred_elements=100000000,
+    just_volume: bool = False,
+):
     """
+    Compute the log likelihood for samples on a grid
+
     min_max_extents:
         (np.array, np.array) The boundaries of the axis aligned cubiod to compute the sampling over
     sampling_resolution:
         The size of each grid
     ggm:
         The mixture model to sample from
+    max_pred_elements:
+        Chunk the prediction matrix if it is bigger than this size
+    just_volume:
+        Just return the volume that would be predicted over
     """
     min_extents, max_extents = min_max_extents
 
@@ -34,46 +47,25 @@ def score_grid(min_max_extents, sampling_resolution: float, gmm: GaussianMixture
         origin=min_extents,
         spacing=(sampling_resolution, sampling_resolution, sampling_resolution),
     )
+    if just_volume:
+        return probs_volume
     grids = np.stack((probs_volume.x, probs_volume.y, probs_volume.z), axis=1)
 
-    log_likelihood = gmm.score_samples(grids)
+    # The number of samples we are trying to run inference on
+    num_samples = grids.shape[0]
+    # The number of GMM componets
+    num_components = gmm.means_.shape[0]
+    # The naive prediction would be n_samples x n_components. We need to figure out how many
+    # samples can fit in each chunk without making this matrix too big.
+    samples_per_chunk = int(max_pred_elements / num_components)
+
+    preds = []
+    # Do predictions on subsets of the data
+    for i in tqdm(range(0, num_samples, samples_per_chunk)):
+        preds.append(gmm.score_samples(grids[i : i + samples_per_chunk]))
+
+    log_likelihood = np.concatenate(preds, axis=0)
     return probs_volume, log_likelihood
-
-
-def show_GMM_isocontours(
-    xyz_data,
-    n_components=5,
-    show_cloud=False,
-    show_volume=False,
-    sampling_resolution=3,
-    isocontour_quantiles=(0.9999, 0.999999),
-    downsample_to_fraction=0.05,
-):
-    # Fit a GMM to the existings points
-    num_points = xyz_data.shape[0]
-    retain_indices = np.random.choice(
-        num_points, int(num_points * downsample_to_fraction)
-    )
-    xyz_data = xyz_data[retain_indices]
-
-    if show_cloud:
-        cloud = pv.PolyData(xyz_data)
-        cloud["elevation"] = xyz_data[:, 2]
-        cloud.plot(eye_dome_lighting=True)
-
-    gmm = GaussianMixture(n_components=n_components)
-    gmm.fit(xyz_data)
-
-    probs_volume, probs = score_grid(xyz_data, sampling_resolution, gmm)
-    probs_volume.point_data["probabilities"] = probs
-    probs_volume.set_active_scalars("probabilities")
-
-    if show_volume:
-        # TODO unitize
-        probs_volume.plot(volume=True)
-    isocontours = np.quantile(probs, isocontour_quantiles)
-    probs_contours = probs_volume.contour(isocontours, scalars=probs)
-    probs_contours.plot(opacity=0.5)
 
 
 def windowed_GMM(
@@ -82,8 +74,9 @@ def windowed_GMM(
     n_comps_per_clusters: int = 10,
     n_points_for_kmeans: int = 1000,
     sampling_resolution: float = 0.5,
-    isosurface_thresh: float = 0.001,
+    isosurface_log_likelihood_thresholds: tuple = (-11,),
     vis: bool = True,
+    reload: bool = True,
 ):
     """
     Fit GMM to different subregions 
@@ -96,6 +89,8 @@ def windowed_GMM(
         How many GMM components per window
     sampling_resolution: 
         Grid to sample for iscontours
+    reload:
+        Reload exisiting data
     """
     kmeans = KMeans(n_clusters=n_clusters)
     # Fit on a subset of points to speed up computation
@@ -104,74 +99,118 @@ def windowed_GMM(
     # Predict the labels for all of them
     cluster_labels = kmeans.predict(points)
 
-    if vis and False:
+    if vis:
         colors = np.array(distinctipy.get_colors(n_clusters))
         color_per_point = colors[cluster_labels]
         pc = pv.PolyData(points)
         pc["color"] = color_per_point
         pc.plot(scalars="color", rgb=True)
 
-    # Try to paraellize this for best practice
-    accumulator = None
-
-    min_max_extents = (np.min(points, axis=0), np.max(points, axis=0))
-
-    weights = []
-    means = []
-    covariances = []
-    for i in tqdm(range(n_clusters)):
-        sampled_points = points[cluster_labels == i]
-        gmm = GaussianMixture(n_components=n_comps_per_clusters)
-        gmm.fit(sampled_points)
-        weights.append(gmm.weights_)
-        means.append(gmm.means_)
-        covariances.append(gmm.covariances_)
-
-    weights = np.concatenate(weights, axis=0)
-    means = np.concatenate(means, axis=0)
-    means = np.concatenate(means, axis=0)
-    breakpoint()
-    prob_volume, log_likelihood = score_grid(min_max_extents, sampling_resolution, gmm)
-    likelihood = np.exp(log_likelihood)
-
-    if accumulator is None:
-        accumulator = likelihood
+    if reload:
+        log_likelihood = np.load("data/log_likelihood.npy")
+        min_max_extents = (np.min(points, axis=0), np.max(points, axis=0))
+        prob_volume = score_grid(
+            min_max_extents, sampling_resolution, None, just_volume=True
+        )
     else:
-        accumulator += likelihood
-    np.save("data/accumulator.npy", accumulator)
+        weights = []
+        means = []
+        precisions = []
+        precisions_cholesky = []
+        # Try to paraellize this for best practice
+        for i in tqdm(range(n_clusters)):
+            sampled_points = points[cluster_labels == i]
+            gmm = GaussianMixture(n_components=n_comps_per_clusters)
+            gmm.fit(sampled_points)
+            weights.append(gmm.weights_)
+            means.append(gmm.means_)
+            precisions.append(gmm.precisions_)
+            precisions_cholesky.append(gmm.precisions_cholesky_)
+
+        weights = np.concatenate(weights, axis=0)
+        # Normalize the weight to be a valid probability distribution
+        weights = weights / np.sum(weights)
+        means = np.concatenate(means, axis=0)
+        precisions = np.concatenate(precisions, axis=0)
+        precisions_cholesky = np.concatenate(precisions_cholesky, axis=0)
+
+        # Create a concatenation of all the previously fit ones
+        inference_GMM = GaussianMixture(
+            n_components=n_comps_per_clusters * n_clusters,
+            weights_init=weights,
+            means_init=means,
+            precisions_init=precisions,
+        )
+        inference_GMM.weights_ = weights
+        inference_GMM.means_ = means
+        inference_GMM.precisions_ = precisions
+        inference_GMM.precisions_cholesky_ = precisions_cholesky
+
+        min_max_extents = (np.min(points, axis=0), np.max(points, axis=0))
+        prob_volume, log_likelihood = score_grid(
+            min_max_extents, sampling_resolution, inference_GMM
+        )
 
     if vis:
-        breakpoint()
         plotter = pv.Plotter()
+        prob_volume["log_likelihood"] = log_likelihood
+        probs_contours = prob_volume.contour(
+            isosurface_log_likelihood_thresholds, scalars=log_likelihood
+        )
 
-        probs_contours = prob_volume.contour((isosurface_thresh,), scalars=accumulator)
-
-        plotter.add_mesh(probs_contours)
-        plotter.add_mesh(pv.PolyData(points))
+        z = probs_contours.points[:, -1]
+        plotter.add_mesh(probs_contours, scalars=z)
         plotter.show()
-    return accumulator
+    return log_likelihood
 
 
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--pointcloud", type=Path, default=DEFAULT_POINTCLOUD)
-    parser.add_argument("--n-comps", type=int, default=1)
+    parser.add_argument("--n-clusters", type=int, default=100)
+    parser.add_argument("--n-comps-per-clusters", type=int, default=10)
+    parser.add_argument("--n-points-for-kmeans", type=int, default=1000)
+    parser.add_argument("--sampling-resolution", type=float, default=0.5)
+    parser.add_argument(
+        "--isosurface-log-likelihood-thresholds", nargs="+", default=(-11,), type=float
+    )
+    parser.add_argument("--vis", action="store_true")
     args = parser.parse_args()
     return args
 
 
-def main(file, n_comps):
+def main(
+    file,
+    n_clusters: int = 100,
+    n_comps_per_clusters: int = 10,
+    n_points_for_kmeans: int = 1000,
+    sampling_resolution: float = 0.5,
+    isosurface_log_likelihood_thresholds: tuple = (-11,),
+    vis: bool = True,
+):
     """"""
     data = pd.read_csv(file, names=("x", "y", "z", "count", "unixtime"))
     xyz = data.iloc[:, :3]
     xyz = xyz.to_numpy()
-    windowed_GMM(xyz)
-
-    show_GMM_isocontours(
-        xyz, n_components=800, downsample_to_fraction=0.01, show_cloud=True
+    windowed_GMM(
+        xyz,
+        n_clusters,
+        n_comps_per_clusters,
+        n_points_for_kmeans,
+        sampling_resolution,
+        isosurface_log_likelihood_thresholds,
+        vis,
     )
 
 
 if __name__ == "__main__":
     args = parse_args()
-    main(args.pointcloud, args.n_comps)
+    main(
+        args.pointcloud,
+        args.n_clusters,
+        args.n_comps_per_clusters,
+        args.n_points_for_kmeans,
+        args.sampling_resolution,
+        args.isosurface_log_likelihood_thresholds,
+        args.vis,
+    )
