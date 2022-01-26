@@ -1,11 +1,16 @@
+import argparse
 from pathlib import Path
-from turtle import down
 
 import numpy as np
 import pandas as pd
 import pyvista as pv
-from pyvista import examples
+from safeforest.config import SAFEFOREST_DATA_FOLDER
 from sklearn.mixture import GaussianMixture
+
+DEFAULT_POINTCLOUD = Path(
+    SAFEFOREST_DATA_FOLDER,
+    "datasets/portugal_UAV_12_21/derived/safe_forest_2/slam_outputs/PointCloud/2022-01-14-17-44/map_64.txt",
+)
 
 
 def to_unit(data):
@@ -24,7 +29,7 @@ def show_GMM_isocontours(
     show_cloud=False,
     show_volume=False,
     sampling_resolution=3,
-    isocontour_quantiles=(0.97, 0.99),
+    isocontour_quantiles=(0.9999, 0.999999),
     downsample_to_fraction=0.05,
 ):
     # Fit a GMM to the existings points
@@ -42,8 +47,8 @@ def show_GMM_isocontours(
     gmm = GaussianMixture(n_components=n_components)
     gmm.fit(xyz_data)
 
-    min_extents = np.min(xyz, axis=0)
-    max_extents = np.max(xyz, axis=0)
+    min_extents = np.min(xyz_data, axis=0)
+    max_extents = np.max(xyz_data, axis=0)
 
     dims = ((max_extents - min_extents) / sampling_resolution).astype(int)
     probs_volume = pv.UniformGrid(
@@ -54,7 +59,6 @@ def show_GMM_isocontours(
     grids = np.stack((probs_volume.x, probs_volume.y, probs_volume.z), axis=1)
 
     probs = gmm.score_samples(grids)
-    # probs = to_unit(probs)
 
     probs_volume.point_data["probabilities"] = probs
     probs_volume.set_active_scalars("probabilities")
@@ -67,13 +71,25 @@ def show_GMM_isocontours(
     probs_contours.plot(opacity=0.5)
 
 
-FILE = Path(Path.home(), "Downloads/map_156.txt")
-OUTPUT_FILE = Path(Path.home(), "data/SafeForestData/temp/mesh.xyz")
+def parse_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--pointcloud", type=Path, default=DEFAULT_POINTCLOUD)
+    parser.add_argument("--n-comps", type=int, default=1)
+    args = parser.parse_args()
+    return args
 
-data = pd.read_csv(FILE, names=("x", "y", "z", "count", "unixtime"))
-xyz = data.iloc[:, :3]
-xyz = xyz.to_numpy()
 
-show_GMM_isocontours(
-    xyz, n_components=800, downsample_to_fraction=0.01, show_cloud=True
-)
+def main(file, n_comps):
+    """"""
+    data = pd.read_csv(file, names=("x", "y", "z", "count", "unixtime"))
+    xyz = data.iloc[:, :3]
+    xyz = xyz.to_numpy()
+
+    show_GMM_isocontours(
+        xyz, n_components=800, downsample_to_fraction=0.01, show_cloud=True
+    )
+
+
+if __name__ == "__main__":
+    args = parse_args()
+    main(args.pointcloud, args.n_comps)
