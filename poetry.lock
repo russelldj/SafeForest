@@ -171,10 +171,7 @@ mypy-extensions = ">=0.4.3"
 pathspec = ">=0.9.0,<1"
 platformdirs = ">=2"
 tomli = ">=0.2.6,<2.0.0"
-typing-extensions = [
-    {version = ">=3.10.0.0", markers = "python_version < \"3.10\""},
-    {version = "!=3.10.0.1", markers = "python_version >= \"3.10\""},
-]
+typing-extensions = ">=3.10.0.0"
 
 [package.extras]
 colorama = ["colorama (>=0.4.3)"]
@@ -195,6 +192,19 @@ python-versions = ">=3.6"
 packaging = "*"
 six = ">=1.9.0"
 webencodings = "*"
+
+[[package]]
+name = "catkin-pkg"
+version = "0.4.24"
+description = "catkin package library"
+category = "main"
+optional = false
+python-versions = "*"
+
+[package.dependencies]
+docutils = "*"
+pyparsing = "*"
+python-dateutil = "*"
 
 [[package]]
 name = "certifi"
@@ -304,6 +314,22 @@ all = ["numpy", "black", "codecov", "coverage", "flake8", "isort", "pytest", "py
 docs = ["sphinx-rtd-theme", "nbsphinx"]
 optional = ["pandas", "matplotlib"]
 tests = ["black", "codecov", "coverage", "flake8", "isort", "pytest", "pytest-cov"]
+
+[[package]]
+name = "distro"
+version = "1.7.0"
+description = "Distro - an OS platform information API"
+category = "main"
+optional = false
+python-versions = ">=3.6"
+
+[[package]]
+name = "docutils"
+version = "0.18.1"
+description = "Docutils -- Python Documentation Utilities"
+category = "main"
+optional = false
+python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*"
 
 [[package]]
 name = "entrypoints"
@@ -1108,6 +1134,38 @@ optional = false
 python-versions = ">=3.8"
 
 [[package]]
+name = "numpy-quaternion"
+version = "2021.11.4.15.26.3"
+description = "Add a quaternion dtype to NumPy"
+category = "main"
+optional = false
+python-versions = "*"
+
+[package.dependencies]
+numpy = ">=1.13"
+
+[package.extras]
+docs = ["mkdocs", "mktheapidocs", "pymdown-extensions"]
+numba = ["numba (<0.49.0)", "llvmlite (<0.32.0)", "numba"]
+scipy = ["scipy"]
+testing = ["pytest", "pytest-cov"]
+
+[[package]]
+name = "numpy-ros"
+version = "0.1.3"
+description = "Seamlessly convert between ROS messages and NumPy arrays."
+category = "main"
+optional = false
+python-versions = ">=3.6,<3.10"
+
+[package.dependencies]
+numpy = ">=1.19.5,<2.0.0"
+numpy-quaternion = ">=2021.4.5,<2022.0.0"
+
+[package.extras]
+quaternion-extras = ["numba (>=0.53.1,<0.54.0)", "scipy (>=0.18.0)"]
+
+[[package]]
 name = "octomap-python"
 version = "1.8.0.post12"
 description = "Python binding of the OctoMap library."
@@ -1156,7 +1214,7 @@ python-versions = ">=3.6"
 
 [package.dependencies]
 numpy = [
-    {version = ">=1.21.2", markers = "python_version >= \"3.10\" or python_version >= \"3.6\" and platform_system == \"Darwin\" and platform_machine == \"arm64\""},
+    {version = ">=1.21.2", markers = "python_version >= \"3.6\" and platform_system == \"Darwin\" and platform_machine == \"arm64\""},
     {version = ">=1.19.3", markers = "python_version >= \"3.6\" and platform_system == \"Linux\" and platform_machine == \"aarch64\" or python_version >= \"3.9\""},
     {version = ">=1.14.5", markers = "python_version >= \"3.7\""},
     {version = ">=1.17.3", markers = "python_version >= \"3.8\""},
@@ -1194,7 +1252,6 @@ numpy = [
     {version = ">=1.17.3", markers = "platform_machine != \"aarch64\" and platform_machine != \"arm64\" and python_version < \"3.10\""},
     {version = ">=1.19.2", markers = "platform_machine == \"aarch64\" and python_version < \"3.10\""},
     {version = ">=1.20.0", markers = "platform_machine == \"arm64\" and python_version < \"3.10\""},
-    {version = ">=1.21.0", markers = "python_version >= \"3.10\""},
 ]
 python-dateutil = ">=2.7.3"
 pytz = ">=2017.3"
@@ -1529,6 +1586,19 @@ urllib3 = ">=1.21.1,<1.27"
 [package.extras]
 socks = ["PySocks (>=1.5.6,!=1.5.7)", "win-inet-pton"]
 use_chardet_on_py3 = ["chardet (>=3.0.2,<5)"]
+
+[[package]]
+name = "rospkg"
+version = "1.3.0"
+description = "ROS package library"
+category = "main"
+optional = false
+python-versions = "*"
+
+[package.dependencies]
+catkin-pkg = "*"
+distro = "*"
+PyYAML = "*"
 
 [[package]]
 name = "scikit-image"
@@ -1988,8 +2058,8 @@ testing = ["pytest (>=6)", "pytest-checkdocs (>=2.4)", "pytest-flake8", "pytest-
 
 [metadata]
 lock-version = "1.1"
-python-versions = ">=3.8,<3.11"
-content-hash = "61e0e30021fab3caeaa751416782628fb53fac40534960147115597f35ff091b"
+python-versions = ">=3.8,<3.10"
+content-hash = "a30d91b31321a9125043b09ba740ce2bbd0f4bf0e7fc007a03840a6614fd95bf"
 
 [metadata.files]
 addict = [
@@ -2141,6 +2211,10 @@ bleach = [
     {file = "bleach-4.1.0-py2.py3-none-any.whl", hash = "sha256:4d2651ab93271d1129ac9cbc679f524565cc8a1b791909c4a51eac4446a15994"},
     {file = "bleach-4.1.0.tar.gz", hash = "sha256:0900d8b37eba61a802ee40ac0061f8c2b5dee29c1927dd1d233e075ebf5a71da"},
 ]
+catkin-pkg = [
+    {file = "catkin_pkg-0.4.24-py3-none-any.whl", hash = "sha256:6ae0dddcde95689266e91dac13e1d8e9cdec4739bc7e2037b14cbcc1d7af96b2"},
+    {file = "catkin_pkg-0.4.24.tar.gz", hash = "sha256:f26d22cc5d8cb54f681f13fec4d06637b4983d493aa054f8e69ba888d632c6b4"},
+]
 certifi = [
     {file = "certifi-2021.10.8-py2.py3-none-any.whl", hash = "sha256:d62a0163eb4c2344ac042ab2bdf75399a71a2d8c7d47eac2e2ee91b9d6339569"},
     {file = "certifi-2021.10.8.tar.gz", hash = "sha256:78884e7c1d4b00ce3cea67b44566851c4343c120abd683433ce934a68ea58872"},
@@ -2251,6 +2325,14 @@ deprecation = [
 distinctipy = [
     {file = "distinctipy-1.2.1-py3-none-any.whl", hash = "sha256:52c27a57b5ad12e0e8b6e6ab04d6c76f365ecf7d12ba30ab4596e23f80df7278"},
     {file = "distinctipy-1.2.1.tar.gz", hash = "sha256:de208f10fbabfc05256a2eb618b171a5bc6359242e360c31128bad7f1cc9a1ba"},
+]
+distro = [
+    {file = "distro-1.7.0-py3-none-any.whl", hash = "sha256:d596311d707e692c2160c37807f83e3820c5d539d5a83e87cfb6babd8ba3a06b"},
+    {file = "distro-1.7.0.tar.gz", hash = "sha256:151aeccf60c216402932b52e40ee477a939f8d58898927378a02abbe852c1c39"},
+]
+docutils = [
+    {file = "docutils-0.18.1-py2.py3-none-any.whl", hash = "sha256:23010f129180089fbcd3bc08cfefccb3b890b0050e1ca00c867036e9d161b98c"},
+    {file = "docutils-0.18.1.tar.gz", hash = "sha256:679987caf361a7539d76e584cbeddc311e3aee937877c87346f31debc63e9d06"},
 ]
 entrypoints = [
     {file = "entrypoints-0.3-py2.py3-none-any.whl", hash = "sha256:589f874b313739ad35be6e0cd7efde2a4e9b6fea91edcc34e58ecbb8dbe56d19"},
@@ -2758,6 +2840,59 @@ numpy = [
     {file = "numpy-1.22.0-pp38-pypy38_pp73-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:bb02929b0d6bfab4c48a79bd805bd7419114606947ec8284476167415171f55b"},
     {file = "numpy-1.22.0.zip", hash = "sha256:a955e4128ac36797aaffd49ab44ec74a71c11d6938df83b1285492d277db5397"},
 ]
+numpy-quaternion = [
+    {file = "numpy-quaternion-2021.11.4.15.26.3.tar.gz", hash = "sha256:b0dc670b2adc8ff2fb8d6105a48769873f68d6ccbe20af6a19e899b1e8d48aaf"},
+    {file = "numpy_quaternion-2021.11.4.15.26.3-cp310-cp310-macosx_10_9_universal2.whl", hash = "sha256:370a326a822058f72844a15f17b077ac9525e7f574aacb4d12425f85b8c6521a"},
+    {file = "numpy_quaternion-2021.11.4.15.26.3-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:5121bfd6b72f2a39f2c74087cc2630f80fcddb6989bed4967a1db3dec6f1b60f"},
+    {file = "numpy_quaternion-2021.11.4.15.26.3-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:d12c99ed35f2e199a81688465aa5ff6eb02a4404be153e92762c6d0c7afebd1f"},
+    {file = "numpy_quaternion-2021.11.4.15.26.3-cp310-cp310-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:c560abb822986c5d1c0e79bfbae69cceb4961cee778c3541e08a2c961bc1fcbb"},
+    {file = "numpy_quaternion-2021.11.4.15.26.3-cp310-cp310-manylinux_2_5_i686.manylinux1_i686.manylinux_2_12_i686.manylinux2010_i686.whl", hash = "sha256:2e8bde2b050df904d228cec2287752c108fcf46f45d548aa6a3659695154dfa1"},
+    {file = "numpy_quaternion-2021.11.4.15.26.3-cp310-cp310-manylinux_2_5_x86_64.manylinux1_x86_64.manylinux_2_12_x86_64.manylinux2010_x86_64.whl", hash = "sha256:55cca324d113783c42b5b931dc758abd2b0f665b33f0779ac4d3b46368ed5b43"},
+    {file = "numpy_quaternion-2021.11.4.15.26.3-cp310-cp310-musllinux_1_1_i686.whl", hash = "sha256:f9501d2b3f0735b494465784e88870a783728a03f98482152e5f59f5cd8faf8c"},
+    {file = "numpy_quaternion-2021.11.4.15.26.3-cp310-cp310-musllinux_1_1_x86_64.whl", hash = "sha256:c673504d6278376da0be53573a4c9c758acc855a7f3db6d7a8d2b36f460dff6f"},
+    {file = "numpy_quaternion-2021.11.4.15.26.3-cp310-cp310-win32.whl", hash = "sha256:fcbf44821203254ef07d8bbefa390a9f1285bd5c0bf4bf0511417238e9e75e0c"},
+    {file = "numpy_quaternion-2021.11.4.15.26.3-cp310-cp310-win_amd64.whl", hash = "sha256:b61644bd26d43c1299e6e61811f11c6eb90e6d236f72c551597f183d81bf4fe7"},
+    {file = "numpy_quaternion-2021.11.4.15.26.3-cp36-cp36m-macosx_10_9_x86_64.whl", hash = "sha256:4d2f58e36e0027d3f4471de83151b71448cc5ec86d78a101af7b047dad8a6e14"},
+    {file = "numpy_quaternion-2021.11.4.15.26.3-cp36-cp36m-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:8385743bbddc5c116f3084895a90813968d2dbe5a0432ec1bac226f8eb981e1a"},
+    {file = "numpy_quaternion-2021.11.4.15.26.3-cp36-cp36m-manylinux_2_5_i686.manylinux1_i686.manylinux_2_12_i686.manylinux2010_i686.whl", hash = "sha256:b166a89f484447dff939e5d1a10864abd8900a3a04b6e335e0d85a895635c9b7"},
+    {file = "numpy_quaternion-2021.11.4.15.26.3-cp36-cp36m-manylinux_2_5_x86_64.manylinux1_x86_64.manylinux_2_12_x86_64.manylinux2010_x86_64.whl", hash = "sha256:e7bc75eb4fb8c1f280f2bfb8e3992e7dfda3cc46377c4c24eae7f167ee62deae"},
+    {file = "numpy_quaternion-2021.11.4.15.26.3-cp36-cp36m-musllinux_1_1_i686.whl", hash = "sha256:b926a4e201b370e3b3a48355d64b2919ef4916c7c01d0ec88681d69887e6f6fa"},
+    {file = "numpy_quaternion-2021.11.4.15.26.3-cp36-cp36m-musllinux_1_1_x86_64.whl", hash = "sha256:5f15e93f59d130f433b9b83d1c069c481564853280e8197f434d461d30e93de8"},
+    {file = "numpy_quaternion-2021.11.4.15.26.3-cp36-cp36m-win32.whl", hash = "sha256:d3dd473e1c7e46baeaa7d9e8e23ebc903ae214b11b705b6e971a9618a03df82b"},
+    {file = "numpy_quaternion-2021.11.4.15.26.3-cp36-cp36m-win_amd64.whl", hash = "sha256:3d5d468a7cddcd35dc0e02bf5c4e9df4ec71b669deecd9103bc1c8c45ba21c3f"},
+    {file = "numpy_quaternion-2021.11.4.15.26.3-cp37-cp37m-macosx_10_9_x86_64.whl", hash = "sha256:1c664671abd5bfa3ced169d8a75c0b9f834215fa522e48b22a16814b514f8e49"},
+    {file = "numpy_quaternion-2021.11.4.15.26.3-cp37-cp37m-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:a75f5afab0bfecabcae78052ad49aacb1f84c291afa77c667dd08fa3aa28587a"},
+    {file = "numpy_quaternion-2021.11.4.15.26.3-cp37-cp37m-manylinux_2_5_i686.manylinux1_i686.manylinux_2_12_i686.manylinux2010_i686.whl", hash = "sha256:3432877212a0825c0bc5d03e83e9647ce9c7dd9a28472ad4b3903034e9bd26ee"},
+    {file = "numpy_quaternion-2021.11.4.15.26.3-cp37-cp37m-manylinux_2_5_x86_64.manylinux1_x86_64.manylinux_2_12_x86_64.manylinux2010_x86_64.whl", hash = "sha256:c71ab9b50a7eac660081fe89e771c9908f6896f989c3310dd389726167c2ee10"},
+    {file = "numpy_quaternion-2021.11.4.15.26.3-cp37-cp37m-musllinux_1_1_i686.whl", hash = "sha256:0de4b405b2b3a658cd2f84c4e82f63c3cbab6e51f895037826a8f0a2dbc0c73b"},
+    {file = "numpy_quaternion-2021.11.4.15.26.3-cp37-cp37m-musllinux_1_1_x86_64.whl", hash = "sha256:1d7716f886924f270db0556c94fd45b9bccad6081459a1ad7089fc1b6721827f"},
+    {file = "numpy_quaternion-2021.11.4.15.26.3-cp37-cp37m-win32.whl", hash = "sha256:54a02b56ffd1acfa9d14853b569c9767c0ab76dc3f671e35c5c6b45a6f978251"},
+    {file = "numpy_quaternion-2021.11.4.15.26.3-cp37-cp37m-win_amd64.whl", hash = "sha256:1916b64a07ff20ca27625d65d3acabb6fc0aebb462881002fe1c6f1265aae8fd"},
+    {file = "numpy_quaternion-2021.11.4.15.26.3-cp38-cp38-macosx_10_9_universal2.whl", hash = "sha256:1af730383df3e9ef420ac1d12ed434eb46b306bd35098766252d794b4a4d209c"},
+    {file = "numpy_quaternion-2021.11.4.15.26.3-cp38-cp38-macosx_10_9_x86_64.whl", hash = "sha256:89c641a309e9f281647b6182da6539b4803085e97b8037f72bdc7a70fbfd21a2"},
+    {file = "numpy_quaternion-2021.11.4.15.26.3-cp38-cp38-macosx_11_0_arm64.whl", hash = "sha256:7f37d6ac5af60c5bd411b1a7c24b37c76ab31ba089884f43e43a4ba8e860dce2"},
+    {file = "numpy_quaternion-2021.11.4.15.26.3-cp38-cp38-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:7ede8da4cad1e9db3078ce8ec2200ac61a2aad8e61e4910c525453424dc6af53"},
+    {file = "numpy_quaternion-2021.11.4.15.26.3-cp38-cp38-manylinux_2_5_i686.manylinux1_i686.manylinux_2_12_i686.manylinux2010_i686.whl", hash = "sha256:25788963d867e7d6559549f3a7ef1c1b7bd2f9c0b6ba2a94682a13a9544e528e"},
+    {file = "numpy_quaternion-2021.11.4.15.26.3-cp38-cp38-manylinux_2_5_x86_64.manylinux1_x86_64.manylinux_2_12_x86_64.manylinux2010_x86_64.whl", hash = "sha256:c3bb5269abaa6fa42ea13f9ad1cb9a09baff54529f72f1cdf2aca8994e95407c"},
+    {file = "numpy_quaternion-2021.11.4.15.26.3-cp38-cp38-musllinux_1_1_i686.whl", hash = "sha256:2bf1d83eb012ab986b8007535abe26e7b9448e481ae2046ce3797a9178bb16fd"},
+    {file = "numpy_quaternion-2021.11.4.15.26.3-cp38-cp38-musllinux_1_1_x86_64.whl", hash = "sha256:82adf6c65c823c09b1c65b611adeaf38509de62b6a9d89ae1f7b3fa36fba2a24"},
+    {file = "numpy_quaternion-2021.11.4.15.26.3-cp38-cp38-win32.whl", hash = "sha256:92bc50c554234bb78cc8e5925639f35176740eaa2fd93aa8ac3dbc3c68e34845"},
+    {file = "numpy_quaternion-2021.11.4.15.26.3-cp38-cp38-win_amd64.whl", hash = "sha256:4d087ed8fa4ac676ae2b2b6708c10adfb5f2a075cfc1cc7cd52d014dd8a8f7a8"},
+    {file = "numpy_quaternion-2021.11.4.15.26.3-cp39-cp39-macosx_10_9_universal2.whl", hash = "sha256:4281f763f2cf69789ed8100be308e6466f62df7cfd581dd546e190d02768e9d0"},
+    {file = "numpy_quaternion-2021.11.4.15.26.3-cp39-cp39-macosx_10_9_x86_64.whl", hash = "sha256:f31f7be77e3fcc5c6eec0b0ad1a0a9cda1baa4ccdc3b9597050ac343cb827704"},
+    {file = "numpy_quaternion-2021.11.4.15.26.3-cp39-cp39-macosx_11_0_arm64.whl", hash = "sha256:701279c3de83dfbd4fe54d75f87de587ce68efa6e524c558846d2d6a76cc9d4e"},
+    {file = "numpy_quaternion-2021.11.4.15.26.3-cp39-cp39-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:c163bab58c4175fcc84cc3b8bf88420fcd3521901dea2b1a4ac8cc023667192a"},
+    {file = "numpy_quaternion-2021.11.4.15.26.3-cp39-cp39-manylinux_2_5_i686.manylinux1_i686.manylinux_2_12_i686.manylinux2010_i686.whl", hash = "sha256:0a4e15307e6ef37681f3200cbd6c29af873dbde406c21dc607c329d5bc330fb5"},
+    {file = "numpy_quaternion-2021.11.4.15.26.3-cp39-cp39-manylinux_2_5_x86_64.manylinux1_x86_64.manylinux_2_12_x86_64.manylinux2010_x86_64.whl", hash = "sha256:dc26600924cf89277c134b958faec48e4de5295511a3da5ef166384b1185a959"},
+    {file = "numpy_quaternion-2021.11.4.15.26.3-cp39-cp39-musllinux_1_1_i686.whl", hash = "sha256:0e27a9078ff104169d557cbfbaa910d4b535d1a604f07926fcd8b6201b389747"},
+    {file = "numpy_quaternion-2021.11.4.15.26.3-cp39-cp39-musllinux_1_1_x86_64.whl", hash = "sha256:12cba9389cac0bcb04660e7ad59d7567bc2408d0ac8a835364492c1da161ccea"},
+    {file = "numpy_quaternion-2021.11.4.15.26.3-cp39-cp39-win32.whl", hash = "sha256:b1da54cd0f85bd97b5bd2a7bce51fd8a7405d2c0d3514a5a0e0c9366642f8619"},
+    {file = "numpy_quaternion-2021.11.4.15.26.3-cp39-cp39-win_amd64.whl", hash = "sha256:3150a6e8a0c166dced8eb461c7749ec28b22c7b4de6ce2a2826c30a16dcd35aa"},
+]
+numpy-ros = [
+    {file = "numpy-ros-0.1.3.tar.gz", hash = "sha256:ad02a89cf15e4dc50bd9ad66215ede87f2224cb0ac3bff07d10a10aaa7916e7f"},
+    {file = "numpy_ros-0.1.3-py3-none-any.whl", hash = "sha256:e228664969484fe9111e7ef5450d8b67300aa1f4d3c5de121e6c4f35a7be9e4f"},
+]
 octomap-python = [
     {file = "octomap-python-1.8.0.post12.tar.gz", hash = "sha256:ba96e11c9545b80a1f3e1f46e2100a0790665696c7d532ce7ed86673858eaa6f"},
     {file = "octomap_python-1.8.0.post12-cp27-cp27m-manylinux1_i686.whl", hash = "sha256:ee00c1171219d92dc11a3b4628d4166a7a9f396497cc70fe39db112ee79aff52"},
@@ -3128,6 +3263,10 @@ pyzmq = [
 requests = [
     {file = "requests-2.27.1-py2.py3-none-any.whl", hash = "sha256:f22fa1e554c9ddfd16e6e41ac79759e17be9e492b3587efa038054674760e72d"},
     {file = "requests-2.27.1.tar.gz", hash = "sha256:68d7c56fd5a8999887728ef304a6d12edc7be74f1cfa47714fc8b414525c9a61"},
+]
+rospkg = [
+    {file = "rospkg-1.3.0-py3-none-any.whl", hash = "sha256:dc8fab3ed3f163bc301f94ec65ed39a2c40ded6757615a0fb9f2cb2c82470fbe"},
+    {file = "rospkg-1.3.0.tar.gz", hash = "sha256:e024f9d617c55c76dd47530dceb0882c85cb83234450b8df3d1cb809e009f6cb"},
 ]
 scikit-image = [
     {file = "scikit-image-0.18.3.tar.gz", hash = "sha256:ecae99f93f4c5e9b1bf34959f4dc596c41f2f6b2fc407d9d9ddf85aebd3137ca"},
