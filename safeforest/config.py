@@ -137,10 +137,86 @@ RUI_YAMAHA_PALETTE = np.array(
     ]
 )
 
+SEMFIRE_CLASSES = (
+    "Background",
+    "Live flammable material (aka fuel)",
+    "Trunks",
+    "Humans",
+    "Animal",
+    "Canopies",
+    "Traversable",
+)
+
+SEMFIRE_PALETTE = np.array(
+    [
+        [0, 0, 0],
+        [251, 0, 0],
+        [155, 111, 14],
+        [241, 255, 0],
+        [241, 30, 220],
+        [0, 146, 0],
+        [194, 196, 194],
+    ]
+)
+
+SEMFIRE_ROS_PALETTE = np.array(
+    [
+        [0, 0, 0],
+        [128, 0, 0],
+        [0, 128, 0],
+        [128, 128, 0],
+        [0, 0, 128],
+        [128, 0, 128],
+        [0, 128, 128],
+        #        [128, 128, 128],
+    ]
+)
+
+
+# SEMFIRE_CLASSES = (
+#    "Background",
+#    "Live flammable material (aka fuel)",
+#    "Trunks",
+#    "Humans",
+#    "Animal",
+#    "Canopies",
+#    "Traversable",
+# )
+
+# RUI_YAMAHA_CLASSES = (
+#     "sky",
+#     "traversable_ground",
+#     "traversable_vegetation",
+#     "untraversable_vegetation",
+#     "obstacle",
+#     "trunk",
+# )
+
+REMAP_SEMFIRE_TO_RUI_YAMAHA = np.array([0, 2, 5, 4, 4, 3, 1])
+
+PALETTE_MAP = {
+    "rui": RUI_PALETTE,
+    "yamaha": YAMAHA_PALETTE,
+    "rui-yamaha": RUI_YAMAHA_PALETTE,
+    "semfire": SEMFIRE_PALETTE,
+    "semfire-ros": SEMFIRE_ROS_PALETTE,
+}
+
+CLASS_MAP = {
+    "rui": RUI_CLASSES,
+    "yamaha": YAMAHA_CLASSES,
+    "rui-yamaha": RUI_YAMAHA_CLASSES,
+    "semfire": SEMFIRE_CLASSES,
+    "semfire-ros": SEMFIRE_CLASSES,
+}
+
+REMAP_MAP = {"semfire_to_rui_yamaha": REMAP_SEMFIRE_TO_RUI_YAMAHA}
 
 RGB_EXT = "_rgb"
-SEG_EXT = "_seg"
+SEG_EXT = "_segmentation"
 IMG_DIR = "img_dir"
 ANN_DIR = "ann_dir"
 TRAIN_DIR = "train"
 VAL_DIR = "val"
+
+SAFEFOREST_DATA_FOLDER = Path(Path.home(), "data", "SafeForestData")

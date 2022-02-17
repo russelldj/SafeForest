@@ -1,21 +1,15 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from config import LABELS_INFO
+import argparse
+from pathlib import Path
 
-from config import (
-    RUI_CLASSES,
-    RUI_PALETTE,
-    YAMAHA_CLASSES,
-    YAMAHA_PALETTE,
-    RUI_YAMAHA_CLASSES,
-    RUI_YAMAHA_PALETTE,
-)
-
-np.random.seed(123)
-palette = np.random.randint(0, 256, (256, 3), dtype=np.uint8)
+from safeforest.config import PALETTE_MAP, CLASS_MAP
 
 
-def show_label_colors(names, palette, title, savepath=None):
+def show_label_colors(names, palette, title=None, savepath=None):
+    if title is None:
+        title == ""
+
     assert len(names) == len(palette)
     num_cols = int(np.ceil(len(names) / 2))
     fig, axs = plt.subplots(2, num_cols)
@@ -31,30 +25,17 @@ def show_label_colors(names, palette, title, savepath=None):
     plt.show()
 
 
-ids = [x["trainId"] for x in LABELS_INFO]
-names = [x["name"] for x in LABELS_INFO]
-
-names = [
-    "trunks",
-    "soil",
-    "trails",
-    "fuel",
-    "tree canopy",
-    "sky",
-    "stumps",
-]
+def parse_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("dataset")
+    parser.add_argument("--title")
+    parser.add_argument("--savepath", type=Path)
+    args = parser.parse_args()
+    return args
 
 
-names = RUI_CLASSES
-palette = RUI_PALETTE
-
-show_label_colors(RUI_CLASSES, RUI_PALETTE, "Rui labelmaps", "vis/rui_labelmap.png")
-show_label_colors(
-    YAMAHA_CLASSES, YAMAHA_PALETTE, "Yamaha labelmaps", "vis/yamaha_labelmap.png"
-)
-show_label_colors(
-    RUI_YAMAHA_CLASSES,
-    RUI_YAMAHA_PALETTE,
-    "Rui-Yamaha merged labelmaps",
-    "vis/rui_yamaha_labelmap.png",
-)
+if __name__ == "__main__":
+    args = parse_args()
+    classes = CLASS_MAP[args.dataset]
+    palette = PALETTE_MAP[args.dataset]
+    show_label_colors(classes, palette, args.title, args.savepath)
