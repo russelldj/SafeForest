@@ -16,6 +16,8 @@ from std_msgs.msg import Header
 from cv_bridge import CvBridge
 from tqdm import tqdm
 from safeforest.vis.pyvista_utils import add_origin_cube
+from safeforest.three_D.projection import generate_cloud_data_common_lidar
+import matplotlib.pyplot as plt
 
 # import tf
 import pyvista as pv
@@ -34,6 +36,8 @@ def plot_cloud_path(cloud, poses, all_timestamps):
     pl.show()
 
 
+K = np.array([[1458.20218, 0, 684.44996], [0, 1460.09074, 538.93562], [0, 0, 1]])
+
 POINTCLOUD_FILE = Path(Path.home(), "Downloads/fullCloud_labeled.txt")
 
 rospy.init_node("create_cloud_xyzrgb")
@@ -44,7 +48,10 @@ image_pub = rospy.Publisher("image", Image, queue_size=2)
 
 CAMERA_TRAJECTORY_FILE = Path(
     Path.home(),
-    # "data/DataPortugal_Processed/Odom_camera_left/2022-01-14-17-44/odom.txt",
+    "data/DataPortugal_Processed/Odom_camera_left/2022-01-14-17-44/odom.txt",
+)
+GPS_TRAJECTORY_FILE = Path(
+    Path.home(),
     "/home/frc-ag-1/data/DataPortugal_Processed/Odom_gps/2022-01-14-17-44/odom.txt",
 )
 LIDAR_TRAJECTORY_FILE = Path(
@@ -68,8 +75,7 @@ points = read_cloud(POINTCLOUD_FILE)
 pose_data = pd.read_csv(CAMERA_TRAJECTORY_FILE, names=LABELS).to_numpy()[:, :-1]
 # Hack because only this one contains valid timestamps
 _, _, _, pose_timestamps = read_trajectory(LIDAR_TRAJECTORY_FILE)
-# pose_data_timestamps = np.hstack((pose_data, np.expand_dims(pose_timestamps, axis=1)))
-breakpoint()
+pose_data_timestamps = np.hstack((pose_data, np.expand_dims(pose_timestamps, axis=1)))
 
 rgb = struct.unpack("I", struct.pack("BBBB", 0, 255, 0, 255))[0]
 points_with_color_list = [p.tolist() + [rgb] for p in points]
@@ -84,16 +90,18 @@ plotter.open_gif("vis/points.gif")
 # plotter.show(auto_close=False)
 add_origin_cube(plotter)
 
-plot_cloud_path(points, [pose_data], [pose_timestamps])
+# plot_cloud_path(points, [pose_data], [pose_timestamps])
 
 first = True
 
-for pdt in tqdm(pose_data_timestamps[1000:]):
+for step, pdt in enumerate(tqdm(pose_data_timestamps[::20])):
     RT = np.eye(4)
     xyz = pdt[:3]
     quat = pdt[3:7]
     R = Rotation.from_quat(quat).as_matrix()
     RT[:3, :3] = R
+    RT[:3, -1] = xyz
+    RT_inv = np.linalg.inv(RT)
 
     # Transform points by R inv and t inv
     rotated_points = np.dot(R.T, points.T).T
@@ -101,29 +109,42 @@ for pdt in tqdm(pose_data_timestamps[1000:]):
     points_with_color_list = [p.tolist() + [rgb] for p in rotated_translated_points]
     pc2 = point_cloud2.create_cloud(header, FIELDS, points_with_color_list)
 
-    if first:
-        point_cloud = pv.PolyData(rotated_translated_points)
-        plotter.add_mesh(point_cloud)
-        first = False
-    else:
-        pc = pv.PolyData(rotated_translated_points)
-        point_cloud.overwrite(pc)
-
-    plotter.write_frame()
-
     if rospy.is_shutdown():
         break
     timestamp = pdt[-1]
     # pc2.header.stamp.nsecs = timestamp
     pointcloud_pub.publish(pc2)
     image = read_image(IMAGE_FOLDER, timestamp)
-    image = np.flip(image, axis=2)
+    # BGR to RGB
+    # image = np.flip(image, axis=2)
     # image_message = to_message(Image, image)
     image_message = bridge.cv2_to_imgmsg(image, encoding="passthrough")
     image_pub.publish(image_message)
     # br.sendTransform(xyz, quat)
     print(image.shape)
     # TODO publish image
+    image_size = (image.shape[1], image.shape[0])
+    xyz_in_frame, colors, image_points = generate_cloud_data_common_lidar(
+        image, points, K, image_size, RT_inv
+    )
+    dist = np.linalg.norm(xyz_in_frame, axis=1)
+    color_cloud = pv.PolyData(xyz_in_frame)
+    plt.imshow(image)
+    plt.scatter(image_points[0], image_points[1], s=1, c=dist)
+    plt.colorbar()
+    plt.savefig(f"vis/backward_projections/proj{step:03d}.png")
+    plt.clf()
+    # plotter.add_mesh(color_cloud, scalars=colors, rgb=True)
+    if first:
+        point_cloud = pv.PolyData(color_cloud)
+        point_cloud["rgb"] = colors
+        plotter.add_mesh(point_cloud, scalars="rgb", rgb=True)
+        first = False
+    else:
+        pc = pv.PolyData(color_cloud)
+        pc["rgb"] = colors
+        point_cloud.overwrite(pc)
+    plotter.write_frame()
     # TODO publish pose
     # TODO update timestamp
     # rospy.sleep(1.0)
