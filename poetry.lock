@@ -932,30 +932,6 @@ optional = false
 python-versions = "*"
 
 [[package]]
-name = "mmsegmentation"
-version = "0.20.0"
-description = "Open MMLab Semantic Segmentation Toolbox and Benchmark"
-category = "main"
-optional = false
-python-versions = "*"
-develop = true
-
-[package.dependencies]
-matplotlib = "*"
-numpy = "*"
-packaging = "*"
-prettytable = "*"
-
-[package.extras]
-all = ["cityscapesscripts", "matplotlib", "numpy", "packaging", "prettytable", "codecov", "flake8", "interrogate", "isort (==4.3.21)", "pytest", "xdoctest (>=0.10.0)", "yapf"]
-optional = ["cityscapesscripts"]
-tests = ["codecov", "flake8", "interrogate", "isort (==4.3.21)", "pytest", "xdoctest (>=0.10.0)", "yapf"]
-
-[package.source]
-type = "directory"
-url = "submodules/mmsegmentation"
-
-[[package]]
 name = "more-itertools"
 version = "8.12.0"
 description = "More routines for operating on iterables, beyond itertools"
@@ -1337,20 +1313,6 @@ python-versions = ">=3.7"
 [package.extras]
 docs = ["Sphinx (>=4)", "furo (>=2021.7.5b38)", "proselint (>=0.10.2)", "sphinx-autodoc-typehints (>=1.12)"]
 test = ["appdirs (==1.4.4)", "pytest (>=6)", "pytest-cov (>=2.7)", "pytest-mock (>=3.6)"]
-
-[[package]]
-name = "prettytable"
-version = "2.5.0"
-description = "A simple Python library for easily displaying tabular data in a visually appealing ASCII table format"
-category = "main"
-optional = false
-python-versions = ">=3.6"
-
-[package.dependencies]
-wcwidth = "*"
-
-[package.extras]
-tests = ["pytest", "pytest-cov", "pytest-lazy-fixture"]
 
 [[package]]
 name = "prometheus-client"
@@ -2059,7 +2021,7 @@ testing = ["pytest (>=6)", "pytest-checkdocs (>=2.4)", "pytest-flake8", "pytest-
 [metadata]
 lock-version = "1.1"
 python-versions = ">=3.8,<3.10"
-content-hash = "a30d91b31321a9125043b09ba740ce2bbd0f4bf0e7fc007a03840a6614fd95bf"
+content-hash = "f7eec5fcf97d09a5bcb6c610ba25c60407b0a502880aa066d4bb02f95e2859a1"
 
 [metadata.files]
 addict = [
@@ -2700,7 +2662,6 @@ mistune = [
     {file = "mistune-0.8.4-py2.py3-none-any.whl", hash = "sha256:88a1051873018da288eee8538d476dffe1262495144b33ecb586c4ab266bb8d4"},
     {file = "mistune-0.8.4.tar.gz", hash = "sha256:59a3429db53c50b5c6bcc8a07f8848cb00d7dc8bdb431a4ab41920d201d4756e"},
 ]
-mmsegmentation = []
 more-itertools = [
     {file = "more-itertools-8.12.0.tar.gz", hash = "sha256:7dc6ad46f05f545f900dd59e8dfb4e84a4827b97b3cfecb175ea0c7d247f6064"},
     {file = "more_itertools-8.12.0-py3-none-any.whl", hash = "sha256:43e6dd9942dffd72661a2c4ef383ad7da1e6a3e968a927ad7a6083ab410a688b"},
@@ -3032,10 +2993,6 @@ pillow = [
 platformdirs = [
     {file = "platformdirs-2.4.1-py3-none-any.whl", hash = "sha256:1d7385c7db91728b83efd0ca99a5afb296cab9d0ed8313a45ed8ba17967ecfca"},
     {file = "platformdirs-2.4.1.tar.gz", hash = "sha256:440633ddfebcc36264232365d7840a970e75e1018d15b4327d11f91909045fda"},
-]
-prettytable = [
-    {file = "prettytable-2.5.0-py3-none-any.whl", hash = "sha256:1411c65d21dca9eaa505ba1d041bed75a6d629ae22f5109a923f4e719cfecba4"},
-    {file = "prettytable-2.5.0.tar.gz", hash = "sha256:f7da57ba63d55116d65e5acb147bfdfa60dceccabf0d607d6817ee2888a05f2c"},
 ]
 prometheus-client = [
     {file = "prometheus_client-0.12.0-py2.py3-none-any.whl", hash = "sha256:317453ebabff0a1b02df7f708efbab21e3489e7072b61cb6957230dd004a0af0"},

@@ -16,7 +16,6 @@ tqdm = "^4.62.3"
 opencv-python = "^4.5.4"
 scikit-learn = "^1.0.1"
 seaborn = "^0.11.2"
-mmsegmentation = { path = "submodules/mmsegmentation/", develop=true }
 open3d = "^0.14.1"
 pyrr = "^0.10.3"
 timerit = "^0.3.0"
