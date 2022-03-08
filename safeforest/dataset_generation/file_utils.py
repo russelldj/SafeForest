@@ -59,12 +59,17 @@ def generate_output_file(output_folder, index, is_ann, num_train):
 
 def write_cityscapes_file(img, output_folder, index, is_ann, num_train):
     output_filepath = generate_output_file(output_folder, index, is_ann, num_train)
+    img = img.astype(np.uint8)
     imwrite(output_filepath, img)
 
 
 def link_cityscapes_file(img_path, output_folder, index, is_ann, num_train):
     output_filepath = generate_output_file(output_folder, index, is_ann, num_train)
     symlink(img_path, output_filepath)
+
+
+def ensure_dir_normal_bits(folder):
+    ensuredir(folder, mode=0o0755)
 
 
 def get_train_val_test(
