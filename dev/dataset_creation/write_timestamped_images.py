@@ -40,6 +40,7 @@ def image_callback(msg):
 
 
 def main():
+    print("In main")
     rospy.init_node("image_listener")
     # Define your image topic
     image_topic = "/mapping/left/image_color"
