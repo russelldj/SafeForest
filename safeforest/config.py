@@ -139,7 +139,7 @@ RUI_YAMAHA_PALETTE = np.array(
 
 SEMFIRE_CLASSES = (
     "Background",
-    "Live flammable material (aka fuel)",
+    "Fuel",  # "Live flammable material (aka fuel)",
     "Trunks",
     "Humans",
     "Animal",
@@ -186,6 +186,14 @@ REMAP_SEMFIRE_TO_RUI_YAMAHA = np.array([0, 2, 5, 4, 4, 3, 1])
 #    "Traversable",
 # )
 REMAP_RUI_TO_SEMFIRE = np.array([0, 0, 0, 5, 1, 2, 2])
+
+# Computed on 925 random images due to memory constraints
+RUI_MEAN = (48.53323261, 62.0253035, 44.00000335)
+# Computed on 925 random images due to memory constraints
+RUI_STD = (45.47641864, 44.69583953, 47.25690955)
+
+SEMFIRE_MEAN = (108.29673735, 106.3535452, 98.38406002)
+SEMFIRE_STD = (64.59367606, 63.37705059, 57.61478235)
 
 PALETTE_MAP = {
     "rui": RUI_PALETTE,
