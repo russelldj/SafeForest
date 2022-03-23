@@ -156,6 +156,7 @@ def plot_aggregate_confusion_matrix(dataset, size=0.8):
         cmap="Blues",
         norm=None,
         xyplotlabels=True,
+        percent=True,
     )
     plt.savefig("vis/fuel_confusion.png")
 
