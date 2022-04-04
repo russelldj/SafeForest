@@ -12,7 +12,7 @@ from safeforest.config import PALETTE_MAP
 from skimage import io
 from tqdm import tqdm
 from safeforest.dataset_generation.file_utils import ensure_dir_normal_bits
-from safeforest.vis.visualize_classes import visualize_with_palette
+from safeforest.vis.visualize_classes import visualize_with_palette, blend_images_gray
 
 
 def parse_args():
@@ -22,6 +22,12 @@ def parse_args():
     parser.add_argument("--seg-dir", type=Path, required=True)
     parser.add_argument(
         "--palette", default="rui", choices=PALETTE_MAP.keys(), type=str
+    )
+    parser.add_argument(
+        "--alpha",
+        type=float,
+        default=0.5,
+        help="Contribution of first image to blended one",
     )
     args = parser.parse_args()
     return args
@@ -48,7 +54,7 @@ def load_png_npy(filename):
         return io.imread(filename)
 
 
-def visualize(seg_dir, image_dir, output_dir, palette_name="rui"):
+def visualize(seg_dir, image_dir, output_dir, palette_name="rui", alpha=0.5):
     palette = PALETTE_MAP[palette_name]
     ensure_dir_normal_bits(output_dir)
     seg_files = sorted(
@@ -63,33 +69,15 @@ def visualize(seg_dir, image_dir, output_dir, palette_name="rui"):
     for seg_file, image_file in tqdm(zip(seg_files, image_files), total=len(seg_files)):
         seg = load_png_npy(seg_file)
         img = io.imread(image_file)
-        # vis_seg = np.zeros((img.shape[0], img.shape[1], 3), dtype=np.uint8)
 
         vis_seg = visualize_with_palette(seg, palette)
-        # for i in range(seg_map.shape[0]):
-        #    vis_seg[seg == i, :] = seg_map[i]
+        blended = blend_images_gray(img, vis_seg)
 
-        concat = np.concatenate((img, vis_seg), axis=1)
+        concat = np.concatenate((img, vis_seg, blended), axis=0)
         savepath = output_dir.joinpath(image_file.name)
         io.imsave(savepath, concat)
 
 
 if __name__ == "__main__":
     args = parse_args()
-    # seg_map = np.loadtxt(args.seg_map)
-    # show_colormaps(seg_map)
-    visualize(args.seg_dir, args.image_dir, args.output_dir, args.palette)
-    # SEG_DIR = Path("data/P001/seg_left")
-    # IMAGE_DIR = Path("data/P001/image_left")
-    # OUTPUT_DIR = Path("vis/P001")
-    # visualize(SEG_DIR, IMAGE_DIR, OUTPUT_DIR)
-
-    # SEG_DIR = Path("data/P002/seg_left")
-    # IMAGE_DIR = Path("data/P002/image_left")
-    # OUTPUT_DIR = Path("vis/P002")
-    # visualize(SEG_DIR, IMAGE_DIR, OUTPUT_DIR)
-    #
-    # SEG_DIR = Path("data/P006/seg_left")
-    # IMAGE_DIR = Path("data/P006/image_left")
-    # OUTPUT_DIR = Path("vis/P006")
-    # visualize(SEG_DIR, IMAGE_DIR, OUTPUT_DIR)
+    visualize(args.seg_dir, args.image_dir, args.output_dir, args.palette, args.alpha)
