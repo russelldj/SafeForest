@@ -6,6 +6,8 @@ import seaborn as sns
 Taken from https://github.com/DTrimarchi10/confusion_matrix/blob/master/cf_matrix.py
 """
 
+plt.style.use("./dev/report.mplstyle")
+
 
 def make_confusion_matrix(
     cf,
@@ -110,11 +112,13 @@ def make_confusion_matrix(
         norm=norm,
     )
 
+    extra_artists = []
     if xyplotlabels:
-        plt.ylabel("True label", fontsize=16)
-        plt.xlabel("Predicted label" + stats_text, fontsize=16)
+        extra_artists.append(plt.ylabel("True label", fontsize=16))
+        extra_artists.append(plt.xlabel("Predicted label" + stats_text, fontsize=16))
     else:
-        plt.xlabel(stats_text)
+        extra_artists.append(plt.xlabel(stats_text))
 
     if title:
-        plt.title(title)
+        extra_artists.append(plt.title(title))
+    return extra_artists

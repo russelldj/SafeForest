@@ -7,7 +7,7 @@ def accumulate_confusion_matrix(preds, gt, current_confusion, n_classes=7):
     TODO futher document
     """
     additional_confusion = metrics.confusion_matrix(
-        preds, gt, labels=np.arange(n_classes)
+        gt, preds, labels=np.arange(n_classes)
     )
     assert np.all(current_confusion.shape == additional_confusion.shape)
     updated_confusion = current_confusion + additional_confusion
