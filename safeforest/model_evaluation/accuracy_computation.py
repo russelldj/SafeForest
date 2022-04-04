@@ -12,3 +12,25 @@ def accumulate_confusion_matrix(preds, gt, current_confusion, n_classes=7):
     assert np.all(current_confusion.shape == additional_confusion.shape)
     updated_confusion = current_confusion + additional_confusion
     return updated_confusion
+
+
+def confusion_union(matrix, index):
+    # Row + column - double count
+    return np.sum(matrix[index, :]) + np.sum(matrix[:, index]) - matrix[index, index]
+
+
+def compute_mIoU(confusion_matrix: np.array):
+    """
+
+    confusion_matrix: (n, n) true label in i, pred in j
+    """
+    num_classes = confusion_matrix.shape[0]
+    IoUs = []
+    for i in range(num_classes):
+        intersection = confusion_matrix[i, i]
+        union = confusion_union(confusion_matrix, i)
+        IoU = intersection / union
+        IoUs.append(IoU)
+
+    mIoU = np.mean(IoUs)
+    return mIoU, IoUs

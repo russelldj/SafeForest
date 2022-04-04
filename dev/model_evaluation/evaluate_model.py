@@ -10,16 +10,18 @@ from sacred import Experiment
 from sacred.observers import MongoObserver
 from safeforest.config import PALETTE_MAP, REMAP_MAP, SEMFIRE_CLASSES
 from safeforest.dataset_generation.file_utils import get_files
-from safeforest.model_evaluation.accuracy_computation import accumulate_confusion_matrix
+from safeforest.model_evaluation.accuracy_computation import (
+    accumulate_confusion_matrix,
+    compute_mIoU,
+)
 from safeforest.vis.cf_matrix import make_confusion_matrix
 from tqdm import tqdm
 
-ex = Experiment("evaluate_model")
-ex.observers.append(MongoObserver(url="localhost:27017", db_name="mmseg"))
+# ex = Experiment("evaluate_model")
+# ex.observers.append(MongoObserver(url="localhost:27017", db_name="mmseg"))
 
 VALID_CLASSES = np.array([True, True, True, False, False, True, False])
 QUALITATIVE_FILE = "vis/qualatative_{:06d}.png"
-SACRED = True
 
 CFG_PATH = Path(
     "/home/frc-ag-1/dev/SafeForestSuperepo/data/models/segformer_mit-b5_512x512_160k_portugal_UAV_12_21_safe_forest_2_pred_labels_sete/segformer_mit-b5_512x512_160k_portugal_UAV_12_21_safe_forest_2_pred_labels_sete.py"
@@ -43,13 +45,21 @@ def parse_args():
     parser.add_argument("--groundtruth-dir", default=GROUNDTRUTH_DIR)
     parser.add_argument("--num-classes", type=int, default=7)
     parser.add_argument("--remap")
-    parser.add_argument("--palette", options=list(PALETTE_MAP.keys()))
+    parser.add_argument("--palette", choices=list(PALETTE_MAP.keys()))
     parser.add_argument("--verbose", action="store_true")
+    parser.add_argument("--log-preds", action="store_true")
+    parser.add_argument("--sacred", action="store_true")
     args = parser.parse_args()
+
+    # Infer groundtruth dir
+    if args.groundtruth_dir is None:
+        if str(args.images_dir).count("img_dir") == 1:
+            args.groundtruth_dir = str(args.images_dir).replace("img_dir", "ann_dir")
+
     return args
 
 
-@ex.config
+# @ex.config
 def config():
     cfg_path = CFG_PATH
     model_path = None  # MODEL_PATH
@@ -71,29 +81,7 @@ def config():
             groundtruth_dir = str(images_dir).replace("img_dir", "ann_dir")
 
 
-def confusion_union(matrix, index):
-    # Row + column - double count
-    return np.sum(matrix[index, :]) + np.sum(matrix[:, index]) - matrix[index, index]
-
-
-def compute_mIoU(confusion_matrix: np.array):
-    """
-
-    confusion_matrix: (n, n) true label in i, pred in j
-    """
-    num_classes = confusion_matrix.shape[0]
-    IoUs = []
-    for i in range(num_classes):
-        intersection = confusion_matrix[i, i]
-        union = confusion_union(confusion_matrix, i)
-        IoU = intersection / union
-        IoUs.append(IoU)
-
-    mIoU = np.mean(IoUs)
-    return mIoU, IoUs
-
-
-@ex.automain
+# @ex.automain
 def main(
     cfg_path,
     model_path,
@@ -106,6 +94,7 @@ def main(
     log_preds=False,
     _run=None,
     sample_freq=1,
+    sacred=False,
 ):
     model = init_segmentor(str(cfg_path), str(model_path))
 
@@ -176,7 +165,7 @@ def main(
                 axs[1].imshow(np.concatenate((pred), axis=1))
                 plt.savefig(QUALITATIVE_FILE.format(i))
 
-            if SACRED:
+            if sacred:
                 _run.add_artifact(QUALITATIVE_FILE.format(i))
             if verbose:
                 plt.show()
@@ -206,25 +195,25 @@ def main(
         bbox_inches="tight",
     )
     np.save("res/confusion_matrix.npy", confusion)
-    if SACRED:
+    if sacred:
         _run.add_artifact("vis/confusion_matrix.png")
         _run.add_artifact("res/confusion_matrix.npy")
     if verbose:
         plt.show()
-    return accuracy
+    return accuracy, ious, confusion
 
 
 if __name__ == "__main__":
-    if not SACRED:
-        args = parse_args()
-        main(
-            args.cfg_path,
-            args.model_path,
-            args.images_dir,
-            args.groundtruth_dir,
-            args.num_classes,
-            args.verbose,
-            remap=args.remap,
-            palette=args.pallete,
-        )
-
+    args = parse_args()
+    main(
+        args.cfg_path,
+        args.model_path,
+        args.images_dir,
+        args.groundtruth_dir,
+        args.num_classes,
+        args.verbose,
+        remap=args.remap,
+        palette=args.palette,
+        log_preds=args.log_preds,
+        sacred=args.sacred,
+    )

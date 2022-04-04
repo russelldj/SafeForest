@@ -21,6 +21,7 @@ def make_confusion_matrix(
     sum_stats=True,
     figsize=None,
     cmap="Blues",
+    normalize_classes=True,
     norm=False,
     title=None,
 ):
@@ -32,7 +33,7 @@ def make_confusion_matrix(
     group_names:   List of strings that represent the labels row by row to be shown in each square.
     categories:    List of strings containing the categories to be displayed on the x,y axis. Default is 'auto'
     count:         If True, show the raw number in the confusion matrix. Default is True.
-    normalize:     If True, show the proportions for each category. Default is True.
+    normalize_classes: If True, show the proportions for each category. Default is True.
     cbar:          If True, show the color bar. The cbar values are based off the values in the confusion matrix.
                    Default is True.
     xyticks:       If True, show x and y ticks. Default is True.
@@ -41,9 +42,16 @@ def make_confusion_matrix(
     figsize:       Tuple representing the figure size. Default will be the matplotlib rcParams value.
     cmap:          Colormap of the values displayed from matplotlib.pyplot.cm. Default is 'Blues'
                    See http://matplotlib.org/examples/color/colormaps_reference.html
-                   
+
     title:         Title for the heatmap. Default is None.
     """
+
+    class_percentages = np.sum(cf, axis=1) / np.sum(cf)
+    class_percentages = ["\n{0:.2%}".format(v) for v in class_percentages]
+    categories_w_percent = [x + y for x, y in zip(categories, class_percentages)]
+
+    if normalize_classes:
+        cf = cf / np.sum(cf, axis=1, keepdims=True)
 
     # CODE TO GENERATE TEXT INSIDE EACH SQUARE
     blanks = ["" for i in range(cf.size)]
@@ -59,9 +67,12 @@ def make_confusion_matrix(
         group_counts = blanks
 
     if percent:
-        group_percentages = [
-            "{0:.2%}".format(value) for value in cf.flatten() / np.sum(cf)
-        ]
+        if normalize_classes:
+            group_percentages = ["{0:.2%}".format(value) for value in cf.flatten()]
+        else:
+            group_percentages = [
+                "{0:.2%}".format(value) for value in cf.flatten() / np.sum(cf)
+            ]
     else:
         group_percentages = blanks
 
@@ -108,7 +119,7 @@ def make_confusion_matrix(
         cmap=cmap,
         cbar=cbar,
         xticklabels=categories,
-        yticklabels=categories,
+        yticklabels=categories_w_percent,
         norm=norm,
     )
 

@@ -107,8 +107,8 @@ def main(
             lines = file.readlines()
         lines[0] = f'_base_ = ["{output_base_network_file}"]\n'
 
-        output_derived_network_file = str(output_base_network_file).replace(
-            base_string, replace_string
+        output_derived_network_file = Path(
+            output_model_folder, f"{derived_network.stem}_{dataset.parts[-1]}.py"
         )
         with open(output_derived_network_file, "w") as outfile_h:
             outfile_h.writelines(lines)
