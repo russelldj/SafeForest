@@ -24,6 +24,10 @@ def parse_args():
         "--palette", default="rui", choices=PALETTE_MAP.keys(), type=str
     )
     parser.add_argument(
+        "--stride", default=1, type=int, help="Evaluate images every <stride>th image"
+    )
+
+    parser.add_argument(
         "--alpha",
         type=float,
         default=0.5,
@@ -54,7 +58,7 @@ def load_png_npy(filename):
         return io.imread(filename)
 
 
-def visualize(seg_dir, image_dir, output_dir, palette_name="rui", alpha=0.5):
+def visualize(seg_dir, image_dir, output_dir, palette_name="rui", alpha=0.5, stride=1):
     palette = PALETTE_MAP[palette_name]
     ensure_dir_normal_bits(output_dir)
     seg_files = sorted(
@@ -66,12 +70,14 @@ def visualize(seg_dir, image_dir, output_dir, palette_name="rui", alpha=0.5):
             f"Different length inputs, {len(seg_files)}, {len(image_files)}"
         )
 
-    for seg_file, image_file in tqdm(zip(seg_files, image_files), total=len(seg_files)):
+    for seg_file, image_file in tqdm(
+        list(zip(seg_files, image_files))[::stride], total=len(seg_files[::stride])
+    ):
         seg = load_png_npy(seg_file)
         img = io.imread(image_file)
 
         vis_seg = visualize_with_palette(seg, palette)
-        blended = blend_images_gray(img, vis_seg)
+        blended = blend_images_gray(img, vis_seg, alpha)
 
         concat = np.concatenate((img, vis_seg, blended), axis=0)
         savepath = output_dir.joinpath(image_file.name)
@@ -80,4 +86,11 @@ def visualize(seg_dir, image_dir, output_dir, palette_name="rui", alpha=0.5):
 
 if __name__ == "__main__":
     args = parse_args()
-    visualize(args.seg_dir, args.image_dir, args.output_dir, args.palette, args.alpha)
+    visualize(
+        args.seg_dir,
+        args.image_dir,
+        args.output_dir,
+        args.palette,
+        args.alpha,
+        args.stride,
+    )
