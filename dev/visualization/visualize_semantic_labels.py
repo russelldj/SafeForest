@@ -8,19 +8,21 @@ from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
+from safeforest.config import PALETTE_MAP
 from skimage import io
 from tqdm import tqdm
-from ubelt.util_path import ensuredir
-
-SEG_MAP = "dev/seg_rgbs.txt"
+from safeforest.dataset_generation.file_utils import ensure_dir_normal_bits
+from safeforest.vis.visualize_classes import visualize_with_palette
 
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--image-dir", type=Path)
-    parser.add_argument("--output-dir", type=Path)
-    parser.add_argument("--seg-dir", type=Path)
-    parser.add_argument("--seg-map", default=SEG_MAP, type=Path)
+    parser.add_argument("--image-dir", type=Path, required=True)
+    parser.add_argument("--output-dir", type=Path, required=True)
+    parser.add_argument("--seg-dir", type=Path, required=True)
+    parser.add_argument(
+        "--palette", default="rui", choices=PALETTE_MAP.keys(), type=str
+    )
     args = parser.parse_args()
     return args
 
@@ -46,9 +48,9 @@ def load_png_npy(filename):
         return io.imread(filename)
 
 
-def visualize(seg_dir, image_dir, output_dir, seg_map_file=SEG_MAP):
-    seg_map = np.loadtxt(seg_map_file)
-    ensuredir(output_dir)
+def visualize(seg_dir, image_dir, output_dir, palette_name="rui"):
+    palette = PALETTE_MAP[palette_name]
+    ensure_dir_normal_bits(output_dir)
     seg_files = sorted(
         list(Path(seg_dir).glob("*.npy")) + list(Path(seg_dir).glob("*.png"))
     )
@@ -61,10 +63,11 @@ def visualize(seg_dir, image_dir, output_dir, seg_map_file=SEG_MAP):
     for seg_file, image_file in tqdm(zip(seg_files, image_files), total=len(seg_files)):
         seg = load_png_npy(seg_file)
         img = io.imread(image_file)
-        vis_seg = np.zeros((img.shape[0], img.shape[1], 3), dtype=np.uint8)
+        # vis_seg = np.zeros((img.shape[0], img.shape[1], 3), dtype=np.uint8)
 
-        for i in range(256):
-            vis_seg[seg == i, :] = seg_map[i]
+        vis_seg = visualize_with_palette(seg, palette)
+        # for i in range(seg_map.shape[0]):
+        #    vis_seg[seg == i, :] = seg_map[i]
 
         concat = np.concatenate((img, vis_seg), axis=1)
         savepath = output_dir.joinpath(image_file.name)
@@ -73,9 +76,9 @@ def visualize(seg_dir, image_dir, output_dir, seg_map_file=SEG_MAP):
 
 if __name__ == "__main__":
     args = parse_args()
-    seg_map = np.loadtxt(args.seg_map)
-    show_colormaps(seg_map)
-    visualize(args.seg_dir, args.image_dir, args.output_dir, args.seg_map)
+    # seg_map = np.loadtxt(args.seg_map)
+    # show_colormaps(seg_map)
+    visualize(args.seg_dir, args.image_dir, args.output_dir, args.palette)
     # SEG_DIR = Path("data/P001/seg_left")
     # IMAGE_DIR = Path("data/P001/image_left")
     # OUTPUT_DIR = Path("vis/P001")
