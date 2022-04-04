@@ -157,13 +157,16 @@ def main(
             if palette is not None:
 
                 pred = palette[pred]
+                white_bar = np.ones((img.shape[0], 10, 3)) * 255
                 if label_file is not None:
                     label = palette[label]
-                    output_img = np.concatenate((img, pred, label), axis=1).astype(
+                    output_img = np.concatenate(
+                        (img, white_bar, pred, white_bar, label), axis=1
+                    ).astype(np.uint8)
+                else:
+                    output_img = np.concatenate((img, white_bar, pred), axis=1).astype(
                         np.uint8
                     )
-                else:
-                    output_img = np.concatenate((img, pred), axis=1).astype(np.uint8)
 
                 imwrite(QUALITATIVE_FILE.format(i), output_img)
             else:
