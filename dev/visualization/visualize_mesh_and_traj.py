@@ -1,15 +1,12 @@
 import argparse
 from pathlib import Path
-from cv2 import imread, imwrite
+from cv2 import imwrite
 
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import pyvista as pv
-from scipy.spatial.transform import Rotation as R
-from sklearn.feature_extraction import image
-from ubelt import timestamp
-from show_seg_video import blend_images_gray
+from safeforest.vis.visualize_classes import blend_images_gray
+from safeforest.utils.ros_utils import read_trajectory, read_image
 
 POINTCLOUD_FILE = Path(Path.home(), "Downloads/fullCloud_labeled.txt")
 CAMERA_TRAJECTORY_FILE = Path(
@@ -29,31 +26,6 @@ IMSIZE = (1384, 1032)
 
 def check_points(x, y, imsize):
     return np.all((x >= 0, x < imsize[0], y >= 0, y < imsize[1]))
-
-
-def read_trajectory(file):
-    labels = ("X", "Y", "Z", "q_x", "q_y", "q_z", "q_w", "timeStamp")
-    data = pd.read_csv(file, names=labels)
-    locs = data.iloc[:, :3].to_numpy()
-    quats = data.iloc[:, 3:7].to_numpy()
-    timestamps = data.iloc[:, 7].to_numpy()
-    rots = [R.from_quat(q).as_matrix() for q in quats]
-    rots = np.stack(rots, axis=2)
-
-    return locs, rots, timestamps
-
-
-def read_image(
-    folder, timestamp,
-):
-    image_names = sorted(Path(folder).glob("*png"))
-    stamps = [int(x.stem) for x in image_names]
-    stamps = np.array(stamps)
-    dists = np.abs(stamps - timestamp)
-    best_match = np.argmin(dists)
-    imname = str(image_names[best_match])
-    img = imread(imname)
-    return img
 
 
 def read_pointcloud(file):
@@ -94,8 +66,8 @@ def parse_args():
 
 def main(pointcloud_file, trajectory_file):
     # Hack because only one contains valid timestamps
-    locs, rots, _ = read_trajectory(trajectory_file)
-    _, _, timestamps = read_trajectory(LIDAR_TRAJECTORY_FILE)
+    locs, rots, _, _ = read_trajectory(trajectory_file)
+    _, _, _, timestamps = read_trajectory(LIDAR_TRAJECTORY_FILE)
     xyzs, labels = read_pointcloud(pointcloud_file)
     colors = COLOR_MAP[labels]
     pc = pv.PolyData(xyzs)

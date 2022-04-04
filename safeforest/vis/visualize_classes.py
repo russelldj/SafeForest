@@ -13,3 +13,15 @@ def visualize_with_palette(index_image, palette):
     colored_image = palette[index_image]
     colored_image = np.reshape(colored_image, (h, w, 3))
     return colored_image.astype(np.uint8)
+
+
+def blend_images(im1, im2, alpha=0.7):
+    return (alpha * im1 + (1 - alpha) * im2).astype(np.uint8)
+
+
+def blend_images_gray(im1, im2, alpha=0.7):
+    num_channels = im1.shape[2]
+    im1 = np.mean(im1, axis=2)
+    im1 = np.expand_dims(im1, axis=2)
+    im1 = np.repeat(im1, repeats=num_channels, axis=2)
+    return (alpha * im1 + (1 - alpha) * im2).astype(np.uint8)

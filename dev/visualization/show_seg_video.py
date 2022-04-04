@@ -4,6 +4,7 @@ import numpy as np
 from argparse import ArgumentParser
 from pathlib import Path
 import matplotlib.pyplot as plt
+from safeforest.vis.visualize_classes import blend_images_gray
 
 
 class VideoWriter:
@@ -22,18 +23,6 @@ class VideoWriter:
     def release(self):
         if self.writer is not None:
             self.writer.release()
-
-
-def blend_images(im1, im2, alpha=0.7):
-    return (alpha * im1 + (1 - alpha) * im2).astype(np.uint8)
-
-
-def blend_images_gray(im1, im2, alpha=0.7):
-    num_channels = im1.shape[2]
-    im1 = np.mean(im1, axis=2)
-    im1 = np.expand_dims(im1, axis=2)
-    im1 = np.repeat(im1, repeats=num_channels, axis=2)
-    return (alpha * im1 + (1 - alpha) * im2).astype(np.uint8)
 
 
 def parse_args():

@@ -3,10 +3,11 @@ import itertools
 from pathlib import Path
 
 import cv2
+from cv2 import PARAM_UNSIGNED_INT
 import matplotlib.pyplot as plt
 import numpy as np
 from dev.utils.img_utils import lap2_focus_measure
-from dev.visualization.show_seg_video import blend_images_gray
+from safeforest.vis.visualize_classes import blend_images_gray
 from safeforest.config import RUI_PALETTE, RUI_YAMAHA_PALETTE, YAMAHA_PALETTE
 from safeforest.dataset_generation.class_utils import combine_classes
 from safeforest.dataset_generation.file_utils import write_cityscapes_file
@@ -34,6 +35,17 @@ REMAP = np.asarray(
 )
 
 
+def compute_nearest_class_1D(pred_pixels, palette):
+    """
+
+    Args:
+        pred_pixels: (n, 3) pixels, assumed to be RGB
+    """
+    dists = spatial.distance.cdist(pred_pixels, palette)
+    pred_ids = np.argmin(dists, axis=1)
+    return pred_ids
+
+
 def compute_nearest_class(pred_image, palette):
     """
     pred_image : np.ndarray
@@ -44,9 +56,7 @@ def compute_nearest_class(pred_image, palette):
     pred_image = np.flip(pred_image, axis=2)
     img_shape = pred_image.shape[:2]
     pred_image = pred_image.reshape((-1, 3))
-
-    dists = spatial.distance.cdist(pred_image, palette)
-    pred_ids = np.argmin(dists, axis=1)
+    pred_ids = compute_nearest_class_1D(pred_image,)
     pred_image = np.reshape(pred_ids, img_shape)
     return pred_image
 

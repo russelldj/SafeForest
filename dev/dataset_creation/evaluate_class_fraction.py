@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import ubelt as ub
 from dev.dataset_creation.merge_classes import visualize_with_palette
-from dev.visualization.show_seg_video import blend_images_gray
+from safeforest.vis.visualize_classes import blend_images_gray
 from imageio import imread, imwrite
 from safeforest.config import RUI_YAMAHA_CLASSES, RUI_YAMAHA_PALETTE
 from scipy.ndimage import gaussian_filter1d
