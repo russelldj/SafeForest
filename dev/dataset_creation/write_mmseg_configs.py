@@ -3,6 +3,7 @@ from pathlib import Path
 from safeforest.dataset_generation.file_utils import get_files
 from safeforest.dataset_generation.file_utils import ensure_dir_normal_bits
 import numpy as np
+from ubelt.util_io import delete
 
 # Takes a base dataset config
 # A base inherited network
@@ -49,6 +50,16 @@ def parse_args():
     parser.add_argument(
         "--output-model-folder", type=Path, help="Where to write the new configs",
     )
+    parser.add_argument(
+        "--just-one",
+        action="store_true",
+        help="Take dataset as the input dataset rather than a folder of them",
+    )
+    parser.add_argument(
+        "--remove",
+        action="store_true",
+        help="Remove all files that this command would otherwise create",
+    )
     args = parser.parse_args()
     return args
 
@@ -63,6 +74,8 @@ def main(
     output_model_folder,
     base_string="b0",
     replace_string="b5",
+    just_one=False,
+    remove=False,
 ):
     # Write back to the same location
     if output_dataset_folder is None:
@@ -74,8 +87,11 @@ def main(
     # Create the output folder
     ensure_dir_normal_bits(output_dataset_folder)
     ensure_dir_normal_bits(output_model_folder)
+    if just_one:
+        datasets = [dataset_folder]
+    else:
+        datasets = get_files(dataset_folder, "*", require_dir=True)
 
-    datasets = get_files(dataset_folder, "*", require_dir=True)
     for dataset in datasets:
         # Write out the dataset config
         with open(base_dataset) as file:
@@ -87,7 +103,6 @@ def main(
             lines[dataset_line] = f'data_root = "{dataset}"\n'
 
         output_dataset_file = Path(output_dataset_folder, dataset.parts[-1] + ".py")
-        print(output_dataset_file)
         with open(output_dataset_file, "w") as output_fh:
             output_fh.writelines(lines)
 
@@ -113,6 +128,17 @@ def main(
         with open(output_derived_network_file, "w") as outfile_h:
             outfile_h.writelines(lines)
 
+        print(output_dataset_file)
+        print(output_base_network_file)
+        print(output_derived_network_file)
+        if remove:
+            print(
+                f"Removing {output_dataset_file},\n{output_base_network_file},\n and {output_derived_network_file}"
+            )
+            delete(output_dataset_file)
+            delete(output_base_network_file)
+            delete(output_derived_network_file)
+
 
 if __name__ == "__main__":
     args = parse_args()
@@ -123,4 +149,6 @@ if __name__ == "__main__":
         derived_network=args.derived_network,
         output_dataset_folder=args.output_dataset_folder,
         output_model_folder=args.output_model_folder,
+        just_one=args.just_one,
+        remove=args.remove,
     )
