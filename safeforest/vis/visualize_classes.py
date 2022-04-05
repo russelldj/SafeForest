@@ -1,4 +1,5 @@
 import numpy as np
+import time
 
 
 def visualize_with_palette(index_image, palette):
@@ -20,6 +21,12 @@ def blend_images(im1, im2, alpha=0.7):
 
 
 def blend_images_gray(im1, im2, alpha=0.7):
+    """Blend two images with the first transformed to grayscale
+
+    im1: img to be turned to gray
+    im2: img kept as normal color
+    alpha: contribution of first image
+    """
     num_channels = im1.shape[2]
     im1 = np.mean(im1, axis=2)
     im1 = np.expand_dims(im1, axis=2)

@@ -80,7 +80,9 @@ def generate_output_file(output_folder, index, is_ann, is_train):
     return output_filepath
 
 
-def write_cityscapes_file(img, output_folder, index, is_ann, is_train):
+def write_cityscapes_file(
+    img: np.array, output_folder: Path, index: int, is_ann: bool, is_train: bool
+):
     output_filepath = generate_output_file(output_folder, index, is_ann, is_train)
     img = img.astype(np.uint8)
     imwrite(output_filepath, img)

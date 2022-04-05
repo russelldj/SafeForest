@@ -158,6 +158,29 @@ SEMFIRE_PALETTE = np.array(
         [194, 196, 194],
     ]
 )
+SEMFIRE_W_IGNORE_CLASSES = (
+    "Background",
+    "Fuel",  # "Live flammable material (aka fuel)",
+    "Trunks",
+    "Humans",
+    "Animal",
+    "Canopies",
+    "Traversable",
+    "Ignore",
+)
+
+SEMFIRE_W_IGNORE_PALETTE = np.array(
+    [
+        [0, 0, 0],
+        [251, 0, 0],
+        [155, 111, 14],
+        [241, 255, 0],
+        [241, 30, 220],
+        [0, 146, 0],
+        [194, 196, 194],
+        [255, 255, 255],
+    ]
+)
 
 SEMFIRE_ROS_PALETTE = np.array(
     [
@@ -171,6 +194,49 @@ SEMFIRE_ROS_PALETTE = np.array(
         #        [128, 128, 128],
     ]
 )
+
+SUPER_ANNOTATE_CLASSES = (
+    "ignore",
+    "People",
+    "blurry",
+    "trunk",
+    "obstacle",
+    "canopy",
+    "fuel",
+    "dirt_grass",
+    "Sky",
+)
+SUPER_ANNOTATE_PALETTE = np.array(
+    [
+        (0, 0, 0),
+        (243, 90, 70),
+        (255, 204, 51),
+        (184, 61, 245),
+        (250, 50, 83),
+        (13, 53, 26),
+        (52, 209, 183),
+        (128, 129, 131),
+        (42, 125, 209),
+    ]
+)
+#    "Background",
+#    "Fuel",  # "Live flammable material (aka fuel)",
+#    "Trunks",
+#    "Humans",
+#    "Animal",
+#    "Canopies",
+#    "Traversable", # Not really used
+#
+#    "background",
+#    "People",
+#    "blurry",
+#    "trunk",
+#    "obstacle",
+#    "canopy",
+#    "fuel",
+#    "dirt_grass",
+#    "Sky",
+REMAP_SUPER_ANNOTATE_TO_SEMFIRE = np.array([7, 3, 7, 2, 0, 5, 1, 0, 0])
 
 REMAP_SEMFIRE_TO_RUI_YAMAHA = np.array([0, 2, 5, 4, 4, 3, 1])
 
@@ -200,6 +266,7 @@ PALETTE_MAP = {
     "yamaha": YAMAHA_PALETTE,
     "rui-yamaha": RUI_YAMAHA_PALETTE,
     "semfire": SEMFIRE_PALETTE,
+    "semfire-w-ignore": SEMFIRE_W_IGNORE_PALETTE,
     "semfire-ros": SEMFIRE_ROS_PALETTE,
 }
 
@@ -208,6 +275,7 @@ CLASS_MAP = {
     "yamaha": YAMAHA_CLASSES,
     "rui-yamaha": RUI_YAMAHA_CLASSES,
     "semfire": SEMFIRE_CLASSES,
+    "semfire-w-ignore": SEMFIRE_W_IGNORE_CLASSES,
     "semfire-ros": SEMFIRE_CLASSES,
 }
 
