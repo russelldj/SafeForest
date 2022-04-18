@@ -197,6 +197,7 @@ SEMFIRE_ROS_PALETTE = np.array(
 
 SUPER_ANNOTATE_CLASSES = (
     "ignore",
+    "grass",
     "People",
     "blurry",
     "trunk",
@@ -209,6 +210,7 @@ SUPER_ANNOTATE_CLASSES = (
 SUPER_ANNOTATE_PALETTE = np.array(
     [
         (0, 0, 0),
+        (184, 233, 134),
         (243, 90, 70),
         (255, 204, 51),
         (184, 61, 245),
@@ -228,6 +230,7 @@ SUPER_ANNOTATE_PALETTE = np.array(
 #    "Traversable", # Not really used
 #
 #    "background",
+#    "grass",
 #    "People",
 #    "blurry",
 #    "trunk",
@@ -236,7 +239,7 @@ SUPER_ANNOTATE_PALETTE = np.array(
 #    "fuel",
 #    "dirt_grass",
 #    "Sky",
-REMAP_SUPER_ANNOTATE_TO_SEMFIRE = np.array([7, 3, 7, 2, 0, 5, 1, 0, 0])
+REMAP_SUPER_ANNOTATE_TO_SEMFIRE = np.array([7, 1, 3, 7, 2, 0, 5, 1, 0, 0])
 
 REMAP_SEMFIRE_TO_RUI_YAMAHA = np.array([0, 2, 5, 4, 4, 3, 1])
 
@@ -268,6 +271,7 @@ PALETTE_MAP = {
     "semfire": SEMFIRE_PALETTE,
     "semfire-w-ignore": SEMFIRE_W_IGNORE_PALETTE,
     "semfire-ros": SEMFIRE_ROS_PALETTE,
+    "superannotate": SUPER_ANNOTATE_PALETTE,
 }
 
 CLASS_MAP = {

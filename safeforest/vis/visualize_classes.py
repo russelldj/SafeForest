@@ -2,7 +2,7 @@ import numpy as np
 import time
 
 
-def visualize_with_palette(index_image, palette):
+def visualize_with_palette(index_image, palette, ignore_ind=255):
     """
     index_image : np.ndarray
         The predicted semantic map with indices. (H,W)
@@ -11,8 +11,12 @@ def visualize_with_palette(index_image, palette):
     """
     h, w = index_image.shape
     index_image = index_image.flatten()
-    colored_image = palette[index_image]
-    colored_image = np.reshape(colored_image, (h, w, 3))
+
+    dont_ignore = index_image != ignore_ind
+    output = np.zeros((index_image.shape[0], 3))
+    colored_image = palette[index_image[dont_ignore]]
+    output[dont_ignore] = colored_image
+    colored_image = np.reshape(output, (h, w, 3))
     return colored_image.astype(np.uint8)
 
 

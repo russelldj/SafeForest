@@ -2,7 +2,7 @@ import numpy as np
 import os
 from pathlib import Path
 from ubelt import ensuredir, symlink
-from imageio import imwrite
+from safeforest.dataset_generation.img_utils import imwrite_ocv
 from safeforest.config import ANN_DIR, IMG_DIR, TRAIN_DIR, VAL_DIR, SEG_EXT, RGB_EXT
 
 
@@ -85,7 +85,7 @@ def write_cityscapes_file(
 ):
     output_filepath = generate_output_file(output_folder, index, is_ann, is_train)
     img = img.astype(np.uint8)
-    imwrite(output_filepath, img)
+    imwrite_ocv(str(output_filepath), img)
 
 
 def link_cityscapes_file(img_path, output_folder, index, is_ann, is_train):
