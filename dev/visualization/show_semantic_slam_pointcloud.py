@@ -16,34 +16,66 @@ def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--input-file", type=Path, required=True)
     parser.add_argument("--output-file", type=Path)
-    parser.add_argument("--rgb", action="store_true")
+    parser.add_argument(
+        "--show-id",
+        action="store_true",
+        help="Show the class ID rather than the semantic color",
+    )
+    parser.add_argument(
+        "--show-rgb-color",
+        action="store_true",
+        help="Show the RGB color rather than the semantic color",
+    )
     parser.add_argument(
         "--palette-name", choices=PALETTE_MAP.keys(), default="semfire-ros-w-ignore"
     )
+    parser.add_argument("--exclude-background-id", type=int)
     args = parser.parse_args()
+
+    if args.output_file is None:
+        args.output_file = Path(str(args.input_file).replace(".csv", "_processed.csv"))
+
     return args
 
 
-def main(input_file, output_file, rgb, palette_name):
+def main(
+    input_file,
+    output_file,
+    show_id,
+    show_rgb_color,
+    palette_name,
+    exclude_background_id=None,
+):
+    # Read the data
     df = pd.read_csv(input_file)
-    header = df.columns.to_numpy().tolist() + ["semantic_ID"]
-    xyz = df.iloc[:, :3].to_numpy()
-    color = df.iloc[:, 3:6].to_numpy()
-    semantic_color = df.iloc[:, 6:9].to_numpy()
-    plotter = pv.Plotter()
-    points = pv.PolyData(xyz)
-    # ids = df["semantic_ID"]
+
     palette = PALETTE_MAP[palette_name]
 
+    semantic_color = df.iloc[:, 6:9].to_numpy()
     ids = compute_nearest_class_1D(semantic_color, palette)
     df["semantic_ID"] = ids
-    if rgb:
-        plotter.add_mesh(points, scalars=semantic_color / 255.0, rgb=True)
-    else:
+
+    if exclude_background_id:
+        not_background_mask = ids != exclude_background_id
+        # not_background_inds = np.where(not_background_mask)[0]
+        df = df.iloc[not_background_mask]
+        semantic_color = semantic_color[not_background_mask]
+
+    xyz = df.iloc[:, :3].to_numpy()
+    plotter = pv.Plotter()
+    points = pv.PolyData(xyz)
+
+    if show_id:
         plotter.add_mesh(points, scalars=ids)
+    else:
+        if show_rgb_color:
+            color = df.iloc[:, 3:6].to_numpy()
+            plotter.add_mesh(points, scalars=color / 255.0, rgb=True)
+        else:
+            plotter.add_mesh(points, scalars=semantic_color / 255.0, rgb=True)
+
     plotter.show()
 
-    output = np.concatenate((xyz,), axis=1)
     if output_file is not None:
         df.to_csv(output_file, index=False)
 
