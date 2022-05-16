@@ -158,6 +158,17 @@ SEMFIRE_PALETTE = np.array(
         [194, 196, 194],
     ]
 )
+
+SEMFIRE_MAIN_CLASSES = (
+    "Background",
+    "Fuel",  # "Live flammable material (aka fuel)",
+    "Trunks",
+    "Canopies",
+)
+
+SEMFIRE_MAIN_PALETTE = np.array([[0, 0, 0], [251, 0, 0], [155, 111, 14], [0, 146, 0],])
+
+
 SEMFIRE_W_IGNORE_CLASSES = (
     "Background",
     "Fuel",  # "Live flammable material (aka fuel)",
@@ -192,6 +203,19 @@ SEMFIRE_ROS_PALETTE = np.array(
         [128, 0, 128],
         [0, 128, 128],
         #        [128, 128, 128],
+    ]
+)
+
+SEMFIRE_ROS_W_IGNORE_PALETTE = np.array(
+    [
+        [0, 0, 0],
+        [128, 0, 0],
+        [0, 128, 0],
+        [128, 128, 0],
+        [0, 0, 128],
+        [128, 0, 128],
+        [0, 128, 128],
+        [255, 255, 255],
     ]
 )
 
@@ -271,6 +295,8 @@ PALETTE_MAP = {
     "semfire": SEMFIRE_PALETTE,
     "semfire-w-ignore": SEMFIRE_W_IGNORE_PALETTE,
     "semfire-ros": SEMFIRE_ROS_PALETTE,
+    "semfire-ros-w-ignore": SEMFIRE_ROS_W_IGNORE_PALETTE,
+    "semfire-main": SEMFIRE_MAIN_PALETTE,
     "superannotate": SUPER_ANNOTATE_PALETTE,
 }
 
@@ -281,6 +307,7 @@ CLASS_MAP = {
     "semfire": SEMFIRE_CLASSES,
     "semfire-w-ignore": SEMFIRE_W_IGNORE_CLASSES,
     "semfire-ros": SEMFIRE_CLASSES,
+    "semfire-main": SEMFIRE_MAIN_CLASSES,
 }
 
 REMAP_MAP = {
