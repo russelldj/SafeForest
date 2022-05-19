@@ -5,6 +5,7 @@ import numpy as np
 import ubelt as ub
 from imageio import imread, imwrite
 from tqdm import tqdm
+from safeforest.config import REMAP_MAP
 
 """
 remap classes
@@ -23,21 +24,24 @@ class keyvalue(argparse.Action):
             getattr(namespace, self.dest)[int(key)] = int(value)
 
 
-def remap_image(input_file, output_file, remap):
+def remap_image(input_file: str, output_file: str, remap: str):
+    """Takes in a filename and writes out a remapped version
+
+    Args:
+        input_file: where to read the file from
+        output_file: where to write the data to
+    """
     img = imread(input_file)
     remapped_img = remap[img].astype(np.uint8)
     ub.ensuredir(output_file.parents[0], mode=0o0755)
     imwrite(output_file, remapped_img)
 
 
-def main(annotation_dir, output_dir, remap):
-    numpy_remap = np.ones((len(remap),), dtype=int) * -1
-
-    for k, v in remap.items():
-        # TODO think about whether this is right
-        numpy_remap[k] = v
-
-    assert not -1 in numpy_remap
+def main(annotation_dir, output_dir, remap_name: str):
+    """
+    remap_name: specifying the remapping strategy 
+    """
+    numpy_remap = REMAP_MAP[remap_name]
 
     input_files = list(annotation_dir.glob("**/*.png"))
     output_files = [x.relative_to(annotation_dir) for x in input_files]
@@ -47,12 +51,13 @@ def main(annotation_dir, output_dir, remap):
         for i_f, o_f in tqdm(zip(input_files, output_files), total=len(input_files))
     ]
 
+
 def merge_datasets(img_folders, ann_folders, output_folder):
-    asdfasdf
+    raise NotImplementedError()
 
 
 def parse_args():
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser("Remap indices in a given dataset")
     parser.add_argument(
         "--annotation-dir",
         type=Path,
@@ -65,11 +70,11 @@ def parse_args():
         required=True,
         help="Where to write the remapped data. The structure will be the same as the input",
     )
-    parser.add_argument("--remap", nargs="*", action=keyvalue)
+    parser.add_argument("--remap-name", choices=REMAP_MAP.keys())
     args = parser.parse_args()
     return args
 
 
 if __name__ == "__main__":
     args = parse_args()
-    main(args.annotation_dir, args.output_dir, args.remap)
+    main(args.annotation_dir, args.output_dir, args.remap_name)

@@ -22,6 +22,8 @@ import matplotlib.pyplot as plt
 # import tf
 import pyvista as pv
 
+PLOT_CLOUD_PATH = True
+
 
 def plot_cloud_path(cloud, poses, all_timestamps):
     pl = pv.Plotter()
@@ -90,7 +92,8 @@ plotter.open_gif("vis/points.gif")
 # plotter.show(auto_close=False)
 add_origin_cube(plotter)
 
-# plot_cloud_path(points, [pose_data], [pose_timestamps])
+if PLOT_CLOUD_PATH:
+    plot_cloud_path(points, [pose_data], [pose_timestamps])
 
 first = True
 
@@ -134,7 +137,6 @@ for step, pdt in enumerate(tqdm(pose_data_timestamps[::20])):
     plt.colorbar()
     plt.savefig(f"vis/backward_projections/proj{step:03d}.png")
     plt.clf()
-    # plotter.add_mesh(color_cloud, scalars=colors, rgb=True)
     if first:
         point_cloud = pv.PolyData(color_cloud)
         point_cloud["rgb"] = colors

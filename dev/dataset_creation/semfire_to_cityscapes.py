@@ -11,6 +11,7 @@ from safeforest.dataset_generation.file_utils import (
     link_cityscapes_file,
     write_cityscapes_file,
 )
+from safeforest.dataset_generation.split_utils import get_is_train_array
 from sklearn.model_selection import ParameterGrid
 
 INPUT_IMG_FOLDER = Path(
@@ -45,21 +46,9 @@ def parse_args():
         nargs="+",
     )
     parser.add_argument("--write-RG-only", action="store_true")
+    parser.add_argument("--run_sweep", action="store_true")
     args = parser.parse_args()
     return args
-
-
-def get_is_train_array(num_total: int, num_train: int, *, seed=None, shift: int = 0):
-    """
-    """
-    if seed is not None:
-        print(f"Warning: setting numpy random seed to {seed}")
-        np.random.seed(seed)
-    values = np.random.permutation(num_total)
-    values = np.concatenate((values[shift:], values[:shift]))
-
-    is_train_array = values < num_train
-    return is_train_array
 
 
 def main(
@@ -132,31 +121,33 @@ def main(
 
 if __name__ == "__main__":
     args = parse_args()
-    print(args.shift)
-    shifts = (0, 30, 60, 90, 120)
-    train_fracs = (0.05, 0.1, 0.15, 0.2, 0.4, 0.6, 0.8)
-    param_dict = {"shift": shifts, "train_frac": train_fracs}
-    param_grid = list(ParameterGrid(param_dict))
-    for params in param_grid:
-        output_folder = Path(
-            args.output_folder, f"train_{params['shift']:06d}_{params['train_frac']:2f}"
-        )
-        print(output_folder)
+    if args.run_sweep:
+        print(args.shift)
+        shifts = (0, 30, 60, 90, 120)
+        train_fracs = (0.05, 0.1, 0.15, 0.2, 0.4, 0.6, 0.8)
+        param_dict = {"shift": shifts, "train_frac": train_fracs}
+        param_grid = list(ParameterGrid(param_dict))
+        for params in param_grid:
+            output_folder = Path(
+                args.output_folder,
+                f"train_{params['shift']:06d}_{params['train_frac']:2f}",
+            )
+            print(output_folder)
+            main(
+                args.input_img_folder,
+                args.input_lbl_folder,
+                output_folder,
+                img_prefix=args.img_prefix,
+                write_RG_only=args.write_RG_only,
+                **params,
+            )
+    else:
         main(
             args.input_img_folder,
             args.input_lbl_folder,
-            output_folder,
+            args.output_folder,
             img_prefix=args.img_prefix,
             write_RG_only=args.write_RG_only,
-            **params,
+            train_frac=args.train_frac[0],
+            shift=args.shift[0],
         )
-
-    # main(
-    #    args.input_img_folder,
-    #    args.input_lbl_folder,
-    #    args.output_folder,
-    #    img_prefix=args.img_prefix,
-    #    write_RG_only=args.write_RG_only,
-    #    train_frac=args.train_frac,
-    #    shift=args.shift,
-    # )

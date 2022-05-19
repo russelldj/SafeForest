@@ -17,8 +17,8 @@ from safeforest.model_evaluation.accuracy_computation import (
 from safeforest.vis.cf_matrix import make_confusion_matrix
 from tqdm import tqdm
 
-# ex = Experiment("evaluate_model")
-# ex.observers.append(MongoObserver(url="localhost:27017", db_name="mmseg"))
+ex = Experiment("evaluate_model")
+ex.observers.append(MongoObserver(url="localhost:27017", db_name="mmseg"))
 
 VALID_CLASSES = np.array([True, True, True, False, False, True, False])
 QUALITATIVE_FILE = "vis/qualatative_{:06d}.png"
@@ -59,7 +59,7 @@ def parse_args():
     return args
 
 
-# @ex.config
+@ex.config
 def config():
     cfg_path = CFG_PATH
     model_path = None  # MODEL_PATH
@@ -81,7 +81,7 @@ def config():
             groundtruth_dir = str(images_dir).replace("img_dir", "ann_dir")
 
 
-# @ex.automain
+@ex.automain
 def main(
     cfg_path,
     model_path,
@@ -94,7 +94,7 @@ def main(
     log_preds=False,
     _run=None,
     sample_freq=1,
-    sacred=False,
+    sacred=True,
 ):
     model = init_segmentor(str(cfg_path), str(model_path))
 
@@ -134,7 +134,6 @@ def main(
 
         if label_file is not None:
             label = imread(label_file)
-
             confusion = accumulate_confusion_matrix(
                 pred.flatten(),
                 label.flatten(),
@@ -203,17 +202,17 @@ def main(
     return accuracy, ious, confusion
 
 
-if __name__ == "__main__":
-    args = parse_args()
-    main(
-        args.cfg_path,
-        args.model_path,
-        args.images_dir,
-        args.groundtruth_dir,
-        args.num_classes,
-        args.verbose,
-        remap=args.remap,
-        palette=args.palette,
-        log_preds=args.log_preds,
-        sacred=args.sacred,
-    )
+# if __name__ == "__main__":
+#    args = parse_args()
+#    main(
+#        args.cfg_path,
+#        args.model_path,
+#        args.images_dir,
+#        args.groundtruth_dir,
+#        args.num_classes,
+#        args.verbose,
+#        remap=args.remap,
+#        palette=args.palette,
+#        log_preds=args.log_preds,
+#        sacred=args.sacred,
+#    )

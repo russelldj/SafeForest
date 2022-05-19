@@ -40,6 +40,7 @@ def parse_args():
     parser.add_argument("--input-folder", default=FOLDER, type=Path)
     parser.add_argument("--output-folder", default=OUTPUT_FOLDER, type=Path)
     parser.add_argument("--pattern", default="*")
+    parser.add_argument("--ignore-class", type=int)
     args = parser.parse_args()
     return args
 
@@ -57,7 +58,7 @@ def parse_args():
 # print(class_color_map.keys())
 # print(class_color_map.values())
 def superannotate_to_cityscapes(
-    input_folder, output_folder, pattern, remap=False, exclude_class=False
+    input_folder, output_folder, pattern, ignore_class=None, remap=False
 ):
     ensure_dir_normal_bits(output_folder)
     files = sorted(input_folder.glob(pattern))
@@ -82,7 +83,9 @@ def superannotate_to_cityscapes(
             remapped_indices = indices
 
         # Don't include an image that's just background classes
-        if exclude_class and np.all(remapped_indices == 7):
+        if ignore_class is not None and np.all(
+            np.isin(remapped_indices, [ignore_class, 255])
+        ):
             continue
 
         axs[1].imshow(
@@ -103,4 +106,6 @@ def superannotate_to_cityscapes(
 
 if __name__ == "__main__":
     args = parse_args()
-    superannotate_to_cityscapes(args.input_folder, args.output_folder, args.pattern)
+    superannotate_to_cityscapes(
+        args.input_folder, args.output_folder, args.pattern, args.ignore_class
+    )
