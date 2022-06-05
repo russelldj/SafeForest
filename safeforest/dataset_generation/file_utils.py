@@ -37,12 +37,12 @@ def get_files(
     sort:
         Return the sorted generator
     require_file:
-        Only return files 
+        Only return files
     require_dir:
         Only return directories
 
     returns:
-        a list or generator of Path 's 
+        a list or generator of Paths
     """
     if require_dir and require_file:
         raise ValueError(

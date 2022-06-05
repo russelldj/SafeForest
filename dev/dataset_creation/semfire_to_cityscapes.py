@@ -30,7 +30,12 @@ TRAIN_FRAC = 0.9
 
 
 def parse_args():
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(
+        description="Takes in folders of raw images and labeled images suitable"
+                    " for semantic segmentation training, then stores them in"
+                    " an output folder in the specific CityScapes directory"
+                    " format. mmseg models are set up to read this format."
+    )
     parser.add_argument("--input-img-folder", default=INPUT_IMG_FOLDER, type=Path)
     parser.add_argument("--input-lbl-folder", default=INPUT_LABEL_FOLDER, type=Path)
     parser.add_argument("--output-folder", default=OUTPUT_FOLDER, type=Path)
