@@ -5,7 +5,6 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 from imageio import imread, imwrite
-from mmseg.apis import inference_segmentor, init_segmentor
 from sacred import Experiment
 from sacred.observers import MongoObserver
 from safeforest.config import PALETTE_MAP, REMAP_MAP, SEMFIRE_CLASSES
@@ -21,7 +20,7 @@ ex = Experiment("evaluate_model")
 ex.observers.append(MongoObserver(url="localhost:27017", db_name="mmseg"))
 
 VALID_CLASSES = np.array([True, True, True, False, False, True, False])
-QUALITATIVE_FILE = "vis/qualatative_{:06d}.png"
+QUALITATIVE_FILE = "vis/qualitative_{:06d}.png"
 
 CFG_PATH = Path(
     "/home/frc-ag-1/dev/SafeForestSuperepo/data/models/segformer_mit-b5_512x512_160k_portugal_UAV_12_21_safe_forest_2_pred_labels_sete/segformer_mit-b5_512x512_160k_portugal_UAV_12_21_safe_forest_2_pred_labels_sete.py"
@@ -81,6 +80,82 @@ def config():
             groundtruth_dir = str(images_dir).replace("img_dir", "ann_dir")
 
 
+def predict(img_files, model):
+    from mmseg.apis import inference_segmentor
+    for img_file in img_files:
+        yield inference_segmentor(model, imread(img_file))[0]
+
+
+def sample_for_confusion(img_files, pred_files, label_files, sample_freq,
+                         num_classes, remap=None, log_preds=False, palette=None,
+                         sacred=False, verbose=False, _run=None,
+                         save_file=QUALITATIVE_FILE):
+
+    confusion = np.zeros((num_classes, num_classes))
+    _, axs = plt.subplots(2, 2, figsize=(10, 9))
+
+    for i, (img_file, pred, label_file) in tqdm(enumerate(zip(img_files,
+                                                              pred_files,
+                                                              label_files))):
+
+        if remap is not None:
+            # Remap the labels
+            # TODO this is slow
+            pred = remap[pred]
+
+        if label_file is not None:
+            label = imread(label_file)
+            confusion = accumulate_confusion_matrix(
+                pred.flatten(),
+                label.flatten(),
+                current_confusion=confusion,
+                n_classes=num_classes,
+            )
+
+        if log_preds:
+
+            # Sample the confusion matrix every image, just subsample the
+            # qualitative images
+            if (i % sample_freq) != 0:
+                continue
+
+            img = imread(img_file)
+            save_name = save_file.format(i)
+
+            if palette is not None:
+                pred = palette[pred]
+                white_bar = np.ones((img.shape[0], 10, 3)) * 255
+                if label_file is not None:
+                    label = palette[label]
+                    output_img = np.concatenate(
+                        (img, white_bar, pred, white_bar, label), axis=1
+                    ).astype(np.uint8)
+                else:
+                    output_img = np.concatenate((img, white_bar, pred), axis=1).astype(
+                        np.uint8
+                    )
+
+                imwrite(save_name, output_img)
+            else:
+                axs[0, 0].imshow(img)
+                axs[0, 0].set_title("Original image")
+                axs[0, 1].imshow(pred)
+                axs[0, 1].set_title("Predicted classes")
+                if label_file is not None:
+                    axs[1, 1].imshow(label)
+                    axs[1, 1].set_title("True classes")
+                    axs[1, 0].imshow((label - pred) != 0)
+                    axs[1, 0].set_title("Wrong labels")
+                plt.tight_layout()
+                plt.savefig(save_name)
+
+            if sacred:
+                _run.add_artifact(save_name)
+            if verbose:
+                plt.show()
+    return confusion
+
+
 @ex.automain
 def main(
     cfg_path,
@@ -96,6 +171,7 @@ def main(
     sample_freq=1,
     sacred=True,
 ):
+    from mmseg.apis import init_segmentor
     model = init_segmentor(str(cfg_path), str(model_path))
 
     img_files = get_files(images_dir, "*")
@@ -103,8 +179,6 @@ def main(
         label_files = [None] * len(img_files)
     else:
         label_files = get_files(groundtruth_dir, "*")
-
-    confusion = np.zeros((num_classes, num_classes))
 
     if palette in PALETTE_MAP.keys():
         palette = PALETTE_MAP[palette]
@@ -119,68 +193,45 @@ def main(
         print(f"Warning {remap} not in {REMAP_MAP.keys()}")
         remap = None
 
-    _, axs = plt.subplots(1, 2)
-
-    for i, (img_file, label_file) in tqdm(enumerate(zip(img_files, label_files))):
-        if (i % sample_freq) != 0:
-            continue
-
-        img = imread(img_file)
-        pred = inference_segmentor(model, img)[0]
-        if remap is not None:
-            # Remap the labels
-            # TODO this is slow
-            pred = remap[pred]
-
-        if label_file is not None:
-            label = imread(label_file)
-            confusion = accumulate_confusion_matrix(
-                pred.flatten(),
-                label.flatten(),
-                current_confusion=confusion,
-                n_classes=len(SEMFIRE_CLASSES),
-            )
-
-        if log_preds:
-            if palette is not None:
-
-                pred = palette[pred]
-                white_bar = np.ones((img.shape[0], 10, 3)) * 255
-                if label_file is not None:
-                    label = palette[label]
-                    output_img = np.concatenate(
-                        (img, white_bar, pred, white_bar, label), axis=1
-                    ).astype(np.uint8)
-                else:
-                    output_img = np.concatenate((img, white_bar, pred), axis=1).astype(
-                        np.uint8
-                    )
-
-                imwrite(QUALITATIVE_FILE.format(i), output_img)
-            else:
-                axs[0].imshow(img)
-                if label_file is not None:
-                    axs[1].imshow(np.concatenate((pred, label), axis=1))
-                axs[1].imshow(np.concatenate((pred), axis=1))
-                plt.savefig(QUALITATIVE_FILE.format(i))
-
-            if sacred:
-                _run.add_artifact(QUALITATIVE_FILE.format(i))
-            if verbose:
-                plt.show()
+    confusion = sample_for_confusion(
+        img_files=img_files,
+        pred_files=predict(img_files, model),
+        label_files=label_files,
+        sample_freq=sample_freq,
+        num_classes=num_classes,
+        log_preds=log_preds,
+        palette=palette,
+        sacred=sacred,
+        verbose=verbose,
+        _run=_run,
+        save_file=QUALITATIVE_FILE,
+    )
+    plt.close()
 
     confusion = confusion[np.ix_(VALID_CLASSES, VALID_CLASSES)]
     valid_semfire_classes = np.array(SEMFIRE_CLASSES)[VALID_CLASSES]
+
+    return calc_metrics(confusion=confusion,
+                        classes=valid_semfire_classes,
+                        save_dir=Path("vis/"),
+                        sacred=sacred,
+                        _run=_run)
+
+
+def calc_metrics(confusion, classes, save_dir, sacred=False, _run=None,
+                 verbose=False):
+
+    graph_path = save_dir.joinpath("confusion_matrix.png")
+    array_path = save_dir.joinpath("confusion_matrix.npy")
 
     accuracy = np.sum(confusion.trace()) / np.sum(confusion)
     miou, ious = compute_mIoU(confusion)
     print(f"mIoU {miou}")
     print(f"IoUs {ious}")
     print(f"Accuracy {accuracy}")
-    plt.close()
     extra_artists = make_confusion_matrix(
         confusion,
-        categories=valid_semfire_classes,
+        categories=classes,
         count=False,
         cmap="Blues",
         norm=None,
@@ -189,16 +240,21 @@ def main(
     plt.xlabel("Predicted", fontsize=20)
     plt.ylabel("True", fontsize=20)
     plt.savefig(
-        "vis/confusion_matrix.png",
+        str(graph_path),
         bbox_extra_artists=extra_artists,
         bbox_inches="tight",
     )
-    np.save("res/confusion_matrix.npy", confusion)
+    np.save(array_path, confusion)
     if sacred:
-        _run.add_artifact("vis/confusion_matrix.png")
-        _run.add_artifact("res/confusion_matrix.npy")
+        _run.add_artifact(graph_path)
+        _run.add_artifact(array_path)
+        _run.log_scalar("mIoU", miou)
+        for class_name, class_iou in zip(classes, ious):
+            _run.log_scalar(f"IoUs_{class_name}", class_iou)
+        _run.log_scalar("Accuracy", accuracy)
     if verbose:
         plt.show()
+
     return accuracy, ious, confusion
 
 
