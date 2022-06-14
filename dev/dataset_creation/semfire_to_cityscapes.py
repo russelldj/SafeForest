@@ -8,7 +8,7 @@ import ubelt as ub
 from imageio import imread
 from safeforest.dataset_generation.file_utils import (
     get_files,
-    link_cityscapes_file,
+    make_cityscapes_file,
     write_cityscapes_file,
 )
 from safeforest.dataset_generation.split_utils import get_is_train_array
@@ -52,6 +52,12 @@ def parse_args():
     )
     parser.add_argument("--write-RG-only", action="store_true")
     parser.add_argument("--run_sweep", action="store_true")
+    parser.add_argument(
+        "--force-copy",
+        help="Normally this tool symlinks files, if this flag is given"
+             " they will instead be copied.",
+        action="store_true",
+    )
     args = parser.parse_args()
     return args
 
@@ -63,6 +69,7 @@ def main(
     *,
     img_prefix: str,
     write_RG_only: bool = False,
+    force_copy: bool = False,
     use_filename_as_index: bool = False,
     verbose=True,
     seed=0,
@@ -106,22 +113,24 @@ def main(
 
         is_train = is_train_array[index]
 
+        cityscapes_kwargs = {"output_folder": output_folder,
+                             "index": index,
+                             "is_train": is_train}
         if write_RG_only:
             img = imread(img_file)
             # TODO consider trying to optimize this
             img[..., 2] = 0
-
-            write_cityscapes_file(
-                img, output_folder, index, is_ann=False, is_train=is_train
-            )
+            write_cityscapes_file(img, is_ann=False, **cityscapes_kwargs)
         else:
-            link_cityscapes_file(
-                img_file, output_folder, index, is_ann=False, is_train=is_train
-            )
+            make_cityscapes_file(img_file,
+                                 is_ann=False,
+                                 force_copy=force_copy,
+                                 **cityscapes_kwargs)
 
-        link_cityscapes_file(
-            label_file, output_folder, index, is_ann=True, is_train=is_train
-        )
+        make_cityscapes_file(label_file,
+                             is_ann=True,
+                             force_copy=force_copy,
+                             **cityscapes_kwargs)
 
 
 if __name__ == "__main__":
@@ -144,6 +153,7 @@ if __name__ == "__main__":
                 output_folder,
                 img_prefix=args.img_prefix,
                 write_RG_only=args.write_RG_only,
+                force_copy=args.force_copy,
                 **params,
             )
     else:
@@ -153,6 +163,7 @@ if __name__ == "__main__":
             args.output_folder,
             img_prefix=args.img_prefix,
             write_RG_only=args.write_RG_only,
+            force_copy=args.force_copy,
             train_frac=args.train_frac[0],
             shift=args.shift[0],
         )
