@@ -1,3 +1,8 @@
+'''
+Tool to try and learn repeatably using mmseg docker, capturing inputs and
+outputs in sacred.
+'''
+
 from imageio import imread
 from pathlib import Path
 import shutil
@@ -19,22 +24,27 @@ EXPERIMENT = Experiment("train_docker_model")
 EXPERIMENT.observers.append(MongoObserver(url="localhost:27017", db_name="mmseg-test"))
 
 
-# Name for the config files in docker
+# Name for the config files in docker and where they are stored
 DCFG = "dataset_config.py"
 MCFG = "model_config.py"
+DATA = "/mmsegmentation/data/"
 
 
 # TODO: Figure out where test.py lives
 
 
+# TODO: Make these configs more general
 @EXPERIMENT.config
 def config():
-    # TODO: Explain
+    # Path to the root/original mmseg docker container
+    # TODO: Reference the official version - maybe make it a fixed path?
     dockerfile_path = Path("/home/eric/Desktop/SEMSEGTEST/Dockerfile")
-    # TODO: Explain
+    # Give the path to the "working directory" where we'll save our logs/model
+    # and the inferenced test images. This was already an mmseg concept.
     workdir = f"WORKDIR_{int(time.time() * 1e6)}"
-    # TODO: Explain
-    DATA = "/mmsegmentation/data/"
+    # Make a list of lines to add to the docker file to put our files in the
+    # right place (based on an assumed volume) and then call training.
+    # TODO: Replace the ENV variables with f-strings
     docker_additions = ["\n",
                         f'ENV DATASET_CFG="{DATA}{DCFG}"\n',
                         f'ENV MODEL_CFG_NAME="{MCFG}"\n',
@@ -46,17 +56,19 @@ def config():
                         " python tools/train.py /mmsegmentation/configs/${MODEL_NAME}/${MODEL_CFG_NAME} --work-dir " + DATA + "${WORKDIR}/ &&" + \
                         " python " + DATA + "test.py /mmsegmentation/configs/${MODEL_NAME}/${MODEL_CFG_NAME} " + DATA + "FAKE_MMREADY_TESTDATA/ " + DATA + "${WORKDIR}/"
                         ]
-    # TODO: Explain
+    # Give the dataset and model configs that we want to use in training.
+    # TODO: Save versions in git and reference it here better
     dataset_cfg_path = Path("/home/eric/Desktop/SEMSEGTEST/fake_vine_dataset_config.py")
-    # TODO: Explain
     model_cfg_path = Path("/home/eric/Desktop/SEMSEGTEST/fake_vine_model_segformer_config.py")
-    # TODO: Explain
+    # Pretty simple, give the classes (in the right order) that were labeled
     classes = ("background", "vine", "post", "leaves", "trunk", "sign")
-    # TODO: Explain
+    # State the volume that will get -v linked with the docker container. Files
+    # moved here can go into the container.
     shared_volume = Path("/tmp/")
-    # TODO: Explain
+    # Directory where images/labels are stored in the cityscapes format.
     train_dir = Path("/tmp/FAKE_MMREADY_DATA/")
-    # TODO: Explain
+    # Directory where test files are stored DIRECTLY in img_dir/*png and
+    # ann_dir/*png. Similar to cityscapes but not quite the same (no val split).
     test_dir = Path("/tmp/FAKE_MMREADY_TESTDATA/")
 
 
@@ -73,6 +85,10 @@ def build_docker(original, additions, _run):
 
 
 def record_data(train_dir, test_dir, _run):
+    '''
+    Record the names of train/test files, saving the actual files would be too
+    expensive but this gives a little traceability.
+    '''
     for name, directory in (("train_data", train_dir),
                             ("test_data", test_dir)):
         with tempfile.TemporaryDirectory() as save_dir:
@@ -116,7 +132,7 @@ def plot_log_data(workdir, classes, _run):
             _run.add_artifact(png)
 
 
-def evaluate_model_on_test(test_dir, workdir, classes, _run):
+def evaluate_on_test(test_dir, workdir, classes, _run):
 
     def img_generator(base, directory, do_read=False):
         files = sorted(base.joinpath(directory).glob("*png"))
@@ -184,4 +200,4 @@ def main(
     plot_log_data(workdir, classes, _run)
 
     # Evaluate model to get stats, store as artifacts and metrics
-    evaluate_model_on_test(test_dir, workdir, classes, _run)
+    evaluate_on_test(test_dir, workdir, classes, _run)
