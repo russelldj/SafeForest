@@ -1,3 +1,4 @@
+from matplotlib import offsetbox
 import pyvista as pv
 import pandas as pd
 import numpy as np
@@ -30,11 +31,15 @@ def parse_args():
         "--palette-name", choices=PALETTE_MAP.keys(), default="semfire-ros-w-ignore"
     )
     parser.add_argument("--exclude-background-id", type=int)
+    parser.add_argument("--screenshot-filename")
     args = parser.parse_args()
 
     if args.output_file is None:
         args.output_file = Path(str(args.input_file).replace(".csv", "_processed.csv"))
 
+    if Path(args.screenshot_filename).is_dir():
+        filename = Path(args.input_file).stem
+        args.screenshot_filename = Path(args.screenshot_filename, filename + ".png")
     return args
 
 
@@ -45,6 +50,7 @@ def main(
     show_rgb_color,
     palette_name,
     exclude_background_id=None,
+    screenshot_filename=None,
 ):
     # Read the data
     df = pd.read_csv(input_file)
@@ -62,7 +68,11 @@ def main(
         semantic_color = semantic_color[not_background_mask]
 
     xyz = df.iloc[:, :3].to_numpy()
-    plotter = pv.Plotter()
+    if screenshot_filename is None:
+        plotter = pv.Plotter()
+    else:
+        plotter = pv.Plotter(off_screen=True)
+
     points = pv.PolyData(xyz)
 
     if show_id:
@@ -74,7 +84,10 @@ def main(
         else:
             plotter.add_mesh(points, scalars=semantic_color / 255.0, rgb=True)
 
-    plotter.show()
+    if screenshot_filename is None:
+        plotter.show()
+    else:
+        plotter.screenshot(filename=screenshot_filename)
 
     if output_file is not None:
         df.to_csv(output_file, index=False)
