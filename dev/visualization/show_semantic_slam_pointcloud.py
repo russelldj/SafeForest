@@ -37,7 +37,7 @@ def parse_args():
     if args.output_file is None:
         args.output_file = Path(str(args.input_file).replace(".csv", "_processed.csv"))
 
-    if Path(args.screenshot_filename).is_dir():
+    if args.screenshot_filename is not None and Path(args.screenshot_filename).is_dir():
         filename = Path(args.input_file).stem
         args.screenshot_filename = Path(args.screenshot_filename, filename + ".png")
     return args
