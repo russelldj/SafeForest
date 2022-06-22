@@ -49,27 +49,27 @@ def config():
                         f'ENV DATASET_CFG="{DATA}{DCFG}"\n',
                         f'ENV MODEL_CFG_NAME="{MCFG}"\n',
                         f'ENV MODEL_CFG="{DATA}{MCFG}"\n',
-                        'ENV MODEL_NAME="segformer"\n',
+                        'ENV MODEL_NAME="fcn"\n',
                         f'ENV WORKDIR="{workdir}"\n',
                         "CMD cp ${DATASET_CFG} configs/_base_/datasets/ &&" + \
                         " cp ${MODEL_CFG} configs/${MODEL_NAME}/ &&" + \
                         " python tools/train.py /mmsegmentation/configs/${MODEL_NAME}/${MODEL_CFG_NAME} --work-dir " + DATA + "${WORKDIR}/ &&" + \
-                        " python " + DATA + "test.py /mmsegmentation/configs/${MODEL_NAME}/${MODEL_CFG_NAME} " + DATA + "FAKE_MMREADY_TESTDATA/ " + DATA + "${WORKDIR}/"
+                        " python " + DATA + "test.py /mmsegmentation/configs/${MODEL_NAME}/${MODEL_CFG_NAME} " + DATA + "REAL_MMREADY_TESTDATA/ " + DATA + "${WORKDIR}/"
                         ]
     # Give the dataset and model configs that we want to use in training.
     # TODO: Save versions in git and reference it here better
-    dataset_cfg_path = Path("/home/eric/Desktop/SEMSEGTEST/fake_vine_dataset_config.py")
-    model_cfg_path = Path("/home/eric/Desktop/SEMSEGTEST/fake_vine_model_segformer_config.py")
+    dataset_cfg_path = Path("/home/eric/Desktop/SEMSEGTEST/vine_dataset_config.py")
+    model_cfg_path = Path("/home/eric/Desktop/SEMSEGTEST/fake_vine_model_fcn_config.py")
     # Pretty simple, give the classes (in the right order) that were labeled
     classes = ("background", "vine", "post", "leaves", "trunk", "sign")
     # State the volume that will get -v linked with the docker container. Files
     # moved here can go into the container.
     shared_volume = Path("/tmp/")
     # Directory where images/labels are stored in the cityscapes format.
-    train_dir = Path("/tmp/FAKE_MMREADY_DATA/")
+    train_dir = Path("/tmp/REAL_MMREADY_DATA/")
     # Directory where test files are stored DIRECTLY in img_dir/*png and
     # ann_dir/*png. Similar to cityscapes but not quite the same (no val split).
-    test_dir = Path("/tmp/FAKE_MMREADY_TESTDATA/")
+    test_dir = Path("/tmp/REAL_MMREADY_TESTDATA/")
 
 
 def build_docker(original, additions, _run):
@@ -106,9 +106,13 @@ def prepare_config(dcfg, mcfg, shared, _run):
     _run.add_artifact(mcfg)
 
 
-def run_docker(shared_volume):
+def run_docker(shared_volume, _run):
+    # Capture how long this takes as a metric
+    start = time.time()
     ubelt.cmd(f"docker run --name mmseg --rm --gpus all --shm-size=8g -v {shared_volume}:/mmsegmentation/data mmsegmentation",
               verbose=1)
+    end = time.time()
+    _run.log_scalar("TrainingTimeHrs", (end-start) / 3600)
 
 
 def capture_train_output(workdir, _run):
@@ -146,7 +150,7 @@ def evaluate_on_test(test_dir, workdir, classes, _run):
             img_files=img_generator(test_dir, "img_dir"),
             pred_files=img_generator(workdir, "predicted", do_read=True),
             label_files=img_generator(test_dir, "ann_dir"),
-            sample_freq=20,
+            sample_freq=1,
             num_classes=len(classes),
             remap=None,
             log_preds=True,
@@ -190,7 +194,7 @@ def main(
     prepare_config(dataset_cfg_path, model_cfg_path, shared_volume, _run)
 
     # Run docker to train the network (will take a long time)
-    run_docker(shared_volume)
+    run_docker(shared_volume, _run)
 
     # Capture the latest model and the output logs as artifacts
     workdir = shared_volume.joinpath(workdir)

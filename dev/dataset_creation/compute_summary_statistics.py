@@ -1,3 +1,9 @@
+'''
+Inside mmsegmentation/configs/_base_/datasets there are dataset config files,
+which include dataset stats like img_norm_cfg = dict(mean=[123.6, 116.2, 103.5],
+std=[58.3, 57.1, 57.3]). This function helps gets those stats for new datasets.
+'''
+
 import argparse
 from imageio import imread
 import numpy as np
@@ -9,11 +15,7 @@ from safeforest.dataset_generation.split_utils import get_is_train_array
 
 def parse_args():
     parser = argparse.ArgumentParser(
-        description="Inside mmsegmentation/configs/_base_/datasets there are"
-                    " dataset config files, which include dataset stats like"
-                    " img_norm_cfg = dict(mean=[123.6, 116.2, 103.5],"
-                    " std=[58.3, 57.1, 57.3]). This function helps gets those"
-                    " stats for new datasets."
+        description=__doc__,
     )
     parser.add_argument("--images-dir")
     parser.add_argument("--num-files", default=500, type=int)

@@ -94,7 +94,7 @@ def evaluate_on_test(test_dir, workdir, classes, _run):
             img_files=img_generator(test_dir, "img_dir"),
             pred_files=img_generator(workdir, "predicted", do_read=True),
             label_files=img_generator(test_dir, "ann_dir"),
-            sample_freq=20,
+            sample_freq=5,
             num_classes=len(classes),
             remap=None,
             log_preds=True,

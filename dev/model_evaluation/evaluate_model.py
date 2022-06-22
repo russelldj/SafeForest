@@ -139,10 +139,10 @@ def sample_for_confusion(img_files, pred_files, label_files, sample_freq,
             else:
                 axs[0, 0].imshow(img)
                 axs[0, 0].set_title("Original image")
-                axs[0, 1].imshow(pred)
+                imshow_with_default(axs[0, 1], pred, num_classes)
                 axs[0, 1].set_title("Predicted classes")
                 if label_file is not None:
-                    axs[1, 1].imshow(label)
+                    imshow_with_default(axs[1, 1], label, num_classes)
                     axs[1, 1].set_title("True classes")
                     axs[1, 0].imshow((label - pred) != 0)
                     axs[1, 0].set_title("Wrong labels")
@@ -154,6 +154,13 @@ def sample_for_confusion(img_files, pred_files, label_files, sample_freq,
             if verbose:
                 plt.show()
     return confusion
+
+
+def imshow_with_default(axis, image, num_classes):
+    '''Do imshow with corner values set for consistent coloring.'''
+    image[0, 0] = 0
+    image[0, 1] = num_classes - 1
+    axis.imshow(image)
 
 
 @ex.automain
