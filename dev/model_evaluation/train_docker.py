@@ -126,13 +126,14 @@ def prepare_config(dcfg, mcfg, additional, shared, _run):
         _run.add_artifact(file)
 
 
-def run_docker(shared_volume, _run):
+def run_docker(shared_volume, _run, timeit=True):
     # Capture how long this takes as a metric
     start = time.time()
     ubelt.cmd(f"docker run --name mmseg --rm --gpus all --shm-size=8g -v {shared_volume}:/mmsegmentation/data mmsegmentation",
               verbose=1)
     end = time.time()
-    _run.log_scalar("TrainingTimeHrs", (end-start) / 3600)
+    if timeit:
+        _run.log_scalar("TrainingTimeHrs", (end-start) / 3600)
 
 
 def capture_train_output(workdir, _run):
@@ -229,7 +230,7 @@ def main(
     build_docker(dockerfile_path, docker_test_additions, _run)
 
     # Run docker to test the network
-    run_docker(shared_volume, _run)
+    run_docker(shared_volume, _run, timeit=False)
 
     # Evaluate model to get stats, store as artifacts and metrics
     evaluate_on_test(test_dir, workdir, classes, _run)

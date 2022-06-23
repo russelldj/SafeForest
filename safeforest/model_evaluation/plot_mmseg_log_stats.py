@@ -30,7 +30,7 @@ def parse_args():
     return args
 
 
-def extract(log_path, k1, k2):
+def extract(log_path, k1, k2, mode=None):
     '''Get paired arrays, only taking data when both pieces are present.'''
     array1 = []
     array2 = []
@@ -38,6 +38,8 @@ def extract(log_path, k1, k2):
         for line in logfile.readlines():
             linedata = json.loads(line)
             if k1 in linedata and k2 in linedata:
+                if mode is not None and linedata["mode"] != mode:
+                    continue
                 array1.append(linedata[k1])
                 array2.append(linedata[k2])
     return numpy.array(array1), numpy.array(array2)
@@ -46,19 +48,20 @@ def extract(log_path, k1, k2):
 def main(log_path, classes, save_dir):
 
     files = []
-    for xkey, ykey in (("epoch", "aAcc"),
-                       ("epoch", "mIoU"),
-                       ("epoch", "mAcc"),
-                       ("iter", "decode.loss_ce"),
-                       ("iter", "decode.acc_seg"),
-                       ("iter", "lr"),
-                       ("iter", "loss"),
-                       ("iter", "memory")):
+    for xkey, ykey, mode in (("epoch", "aAcc", "val"),
+                             ("epoch", "mIoU", "val"),
+                             ("epoch", "mAcc", "val"),
+                             ("iter", "decode.loss_ce", "train"),
+                             ("iter", "decode.acc_seg", "train"),
+                             ("iter", "lr", "train"),
+                             ("iter", "loss", "train"),
+                             ("iter", "memory", "train")):
         figure, axis = pyplot.subplots()
-        x, y = extract(log_path, xkey, ykey)
+        x, y = extract(log_path, xkey, ykey, mode)
         axis.plot(x, y, "o-")
         axis.set_xlabel(xkey)
         axis.set_ylabel(ykey)
+        axis.set_title(f"{xkey} vs. {ykey}, mode: {mode}")
         if save_dir is not None:
             file = save_dir.joinpath(f"{xkey}_{ykey}.png")
             files.append(file)
@@ -74,9 +77,10 @@ def main(log_path, classes, save_dir):
         axis.set_ylabel(prefix)
         for suffix in ("background", "vine", "post", "leaves", "trunk", "sign"):
             ykey = f"{prefix}.{suffix}"
-            x, y = extract(log_path, xkey, ykey)
+            x, y = extract(log_path, xkey, ykey, mode="val")
             axis.plot(x, y, "o-", label=ykey)
         axis.legend()
+        axis.set_title(f"{xkey} vs. {prefix}, mode: val")
         if save_dir is not None:
             file = save_dir.joinpath(f"classes_{xkey}.png")
             files.append(file)
