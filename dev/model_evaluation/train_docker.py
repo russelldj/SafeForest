@@ -36,10 +36,10 @@ DATA = "/mmsegmentation/data/"
 
 # Define the config files and their relationship to the model names
 FILES = {
-    "bisenetv2": "fake_vine_model_bisenet_config.py",
-    "fcn": "fake_vine_model_fcn_config.py",
-    "segformer": "fake_vine_model_segformer_config.py",
-    "unet": "fake_vine_model_unet_config.py",
+    "bisenetv2": "vine_model_bisenet_config.py",
+    "fcn": "vine_model_fcn_config.py",
+    "segformer": "vine_model_segformer_config.py",
+    "unet": "vine_model_unet_config.py",
 }
 
 
@@ -59,12 +59,16 @@ def config():
     workdir = f"WORKDIR_{int(time.time() * 1e6)}"
     # Make a list of lines to add to the docker file to put our files in the
     # right place (based on an assumed volume) and then call training.
-    docker_additions = ["\n",
-                        f"CMD cp {DATA}{DCFG} configs/_base_/datasets/ &&" + \
-                        f" cp {DATA}{MCFG} configs/{model_name}/ &&" + \
-                        f" python tools/train.py /mmsegmentation/configs/{model_name}/{MCFG} --work-dir {DATA}{workdir}/ &&" + \
-                        f" python {DATA}infer_on_test.py /mmsegmentation/configs/{model_name}/{MCFG} {DATA}REAL_MMREADY_TESTDATA/ {DATA}{workdir}/"
-                        ]
+    docker_cmd = f"CMD cp {DATA}{DCFG} configs/_base_/datasets/ &&" + \
+                 f" cp {DATA}{MCFG} configs/{model_name}/ &&"
+    docker_train_additions = [
+        "\n",
+        docker_cmd + f" python tools/train.py /mmsegmentation/configs/{model_name}/{MCFG} --work-dir {DATA}{workdir}/"
+    ]
+    docker_test_additions = [
+        "\n",
+        docker_cmd + f" python {DATA}infer_on_test.py /mmsegmentation/configs/{model_name}/{MCFG} {DATA}REAL_MMREADY_TESTDATA/ {DATA}{workdir}/"
+    ]
     # Give the dataset and model configs that we want to use in training.
     # TODO: Save versions in git and reference it here better
     dataset_cfg_path = Path("/home/eric/Desktop/SEMSEGTEST/vine_dataset_config.py")
@@ -190,7 +194,8 @@ def evaluate_on_test(test_dir, workdir, classes, _run):
 def main(
     dockerfile_path,
     workdir,
-    docker_additions,
+    docker_train_additions,
+    docker_test_additions,
     dataset_cfg_path,
     model_cfg_path,
     additional_files,
@@ -201,8 +206,8 @@ def main(
     _run,
 ):
 
-    # Modify/build Docker file, save as artifact
-    build_docker(dockerfile_path, docker_additions, _run)
+    # Modify/build Docker file for training, save as artifact
+    build_docker(dockerfile_path, docker_train_additions, _run)
 
     # Save data files as artifacts
     record_data(train_dir, test_dir, _run)
@@ -219,6 +224,12 @@ def main(
 
     # Plot the log outputs and store as artifacts
     plot_log_data(workdir, classes, _run)
+
+    # Modify/build Docker file for testing, save as artifact
+    build_docker(dockerfile_path, docker_test_additions, _run)
+
+    # Run docker to test the network
+    run_docker(shared_volume, _run)
 
     # Evaluate model to get stats, store as artifacts and metrics
     evaluate_on_test(test_dir, workdir, classes, _run)
