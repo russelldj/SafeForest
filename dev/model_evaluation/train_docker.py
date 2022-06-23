@@ -1,6 +1,11 @@
 '''
 Tool to try and learn repeatably using mmseg docker, capturing inputs and
 outputs in sacred.
+
+NOTE: You can examine the config like so:
+    python train_docker.py print_config
+NOTE: You can modify the config like so (works with previous command as well):
+    python train_docker.py with model_name=bisenetv2
 '''
 
 from imageio import imread
@@ -19,7 +24,7 @@ from evaluate_model import calc_metrics, sample_for_confusion
 
 
 EXPERIMENT = Experiment("train_docker_model")
-# TODO: Enable after running with real data for a few times
+# TODO: Enable after running with final data for a few times
 # EXPERIMENT.observers.append(MongoObserver(url="localhost:27017", db_name="mmseg"))
 EXPERIMENT.observers.append(MongoObserver(url="localhost:27017", db_name="mmseg-test"))
 
@@ -29,13 +34,23 @@ DCFG = "dataset_config.py"
 MCFG = "model_config.py"
 DATA = "/mmsegmentation/data/"
 
-
-# TODO: Figure out where test.py lives
+# Define the config files and their relationship to the model names
+FILES = {
+    "bisenetv2": "fake_vine_model_bisenet_config.py",
+    "fcn": "fake_vine_model_fcn_config.py",
+    "segformer": "fake_vine_model_segformer_config.py",
+    "unet": "fake_vine_model_unet_config.py",
+}
 
 
 # TODO: Make these configs more general
 @EXPERIMENT.config
 def config():
+
+    # Set a default model, can be overridden on the command line
+    model_name = "unet"
+    assert model_name in FILES, f"Given model {model_name} not recognized {FILES.keys()}"
+
     # Path to the root/original mmseg docker container
     # TODO: Reference the official version - maybe make it a fixed path?
     dockerfile_path = Path("/home/eric/Desktop/SEMSEGTEST/Dockerfile")
@@ -44,32 +59,30 @@ def config():
     workdir = f"WORKDIR_{int(time.time() * 1e6)}"
     # Make a list of lines to add to the docker file to put our files in the
     # right place (based on an assumed volume) and then call training.
-    # TODO: Replace the ENV variables with f-strings
     docker_additions = ["\n",
-                        f'ENV DATASET_CFG="{DATA}{DCFG}"\n',
-                        f'ENV MODEL_CFG_NAME="{MCFG}"\n',
-                        f'ENV MODEL_CFG="{DATA}{MCFG}"\n',
-                        'ENV MODEL_NAME="fcn"\n',
-                        f'ENV WORKDIR="{workdir}"\n',
-                        "CMD cp ${DATASET_CFG} configs/_base_/datasets/ &&" + \
-                        " cp ${MODEL_CFG} configs/${MODEL_NAME}/ &&" + \
-                        " python tools/train.py /mmsegmentation/configs/${MODEL_NAME}/${MODEL_CFG_NAME} --work-dir " + DATA + "${WORKDIR}/ &&" + \
-                        " python " + DATA + "test.py /mmsegmentation/configs/${MODEL_NAME}/${MODEL_CFG_NAME} " + DATA + "REAL_MMREADY_TESTDATA/ " + DATA + "${WORKDIR}/"
+                        f"CMD cp {DATA}{DCFG} configs/_base_/datasets/ &&" + \
+                        f" cp {DATA}{MCFG} configs/{model_name}/ &&" + \
+                        f" python tools/train.py /mmsegmentation/configs/{model_name}/{MCFG} --work-dir {DATA}{workdir}/ &&" + \
+                        f" python {DATA}infer_on_test.py /mmsegmentation/configs/{model_name}/{MCFG} {DATA}REAL_MMREADY_TESTDATA/ {DATA}{workdir}/"
                         ]
     # Give the dataset and model configs that we want to use in training.
     # TODO: Save versions in git and reference it here better
     dataset_cfg_path = Path("/home/eric/Desktop/SEMSEGTEST/vine_dataset_config.py")
-    model_cfg_path = Path("/home/eric/Desktop/SEMSEGTEST/fake_vine_model_fcn_config.py")
+    model_cfg_path = Path(f"/home/eric/Desktop/SEMSEGTEST/{FILES[model_name]}")
+    # Additional files that needs to be copied into the shared volume
+    additional_files = [
+        Path("/home/eric/Desktop/SEMSEGTEST/SafeForest/safeforest/model_evaluation/infer_on_test.py"),
+    ]
     # Pretty simple, give the classes (in the right order) that were labeled
     classes = ("background", "vine", "post", "leaves", "trunk", "sign")
     # State the volume that will get -v linked with the docker container. Files
     # moved here can go into the container.
-    shared_volume = Path("/tmp/")
+    shared_volume = Path("/home/eric/Desktop/SEMSEGTEST/")
     # Directory where images/labels are stored in the cityscapes format.
-    train_dir = Path("/tmp/REAL_MMREADY_DATA/")
+    train_dir = shared_volume.joinpath("REAL_MMREADY_DATA/")
     # Directory where test files are stored DIRECTLY in img_dir/*png and
     # ann_dir/*png. Similar to cityscapes but not quite the same (no val split).
-    test_dir = Path("/tmp/REAL_MMREADY_TESTDATA/")
+    test_dir = shared_volume.joinpath("REAL_MMREADY_TESTDATA/")
 
 
 def build_docker(original, additions, _run):
@@ -99,11 +112,14 @@ def record_data(train_dir, test_dir, _run):
             _run.add_artifact(newfile)
 
 
-def prepare_config(dcfg, mcfg, shared, _run):
+def prepare_config(dcfg, mcfg, additional, shared, _run):
     shutil.copy(dcfg, shared.joinpath(DCFG))
     shutil.copy(mcfg, shared.joinpath(MCFG))
     _run.add_artifact(dcfg)
     _run.add_artifact(mcfg)
+    for file in additional:
+        shutil.copy(file, shared.joinpath(file.name))
+        _run.add_artifact(file)
 
 
 def run_docker(shared_volume, _run):
@@ -177,6 +193,7 @@ def main(
     docker_additions,
     dataset_cfg_path,
     model_cfg_path,
+    additional_files,
     classes,
     shared_volume,
     train_dir,
@@ -191,7 +208,7 @@ def main(
     record_data(train_dir, test_dir, _run)
 
     # Copy config files and save as artifacts
-    prepare_config(dataset_cfg_path, model_cfg_path, shared_volume, _run)
+    prepare_config(dataset_cfg_path, model_cfg_path, additional_files, shared_volume, _run)
 
     # Run docker to train the network (will take a long time)
     run_docker(shared_volume, _run)
