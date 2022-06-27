@@ -53,6 +53,8 @@ def config():
 
     # Path to the root/original mmseg docker container
     # TODO: Reference the official version - maybe make it a fixed path?
+    #       There is an official version here, can it be a relative link?
+    #           SafeForest/submodules/mmsegmentation/docker/Dockerfile
     dockerfile_path = Path("/home/eric/Desktop/SEMSEGTEST/Dockerfile")
     # Give the path to the "working directory" where we'll save our logs/model
     # and the inferenced test images. This was already an mmseg concept.
@@ -129,7 +131,9 @@ def prepare_config(dcfg, mcfg, additional, shared, _run):
 def run_docker(shared_volume, _run, timeit=True):
     # Capture how long this takes as a metric
     start = time.time()
-    ubelt.cmd(f"docker run --name mmseg --rm --gpus all --shm-size=8g -v {shared_volume}:/mmsegmentation/data mmsegmentation",
+    ubelt.cmd("docker run --name mmseg --rm --gpus all --shm-size=8g"
+              f" -v {shared_volume}:/mmsegmentation/data/"
+              " mmsegmentation",
               verbose=1)
     end = time.time()
     if timeit:
@@ -206,6 +210,11 @@ def main(
     test_dir,
     _run,
 ):
+    # Set up the workdir with a symlink
+    workdir = shared_volume.joinpath(workdir)
+    symlink = shared_volume.joinpath("LATEST_WORKDIR")
+    symlink.unlink(missing_ok=True)
+    symlink.symlink_to(workdir)
 
     # Modify/build Docker file for training, save as artifact
     build_docker(dockerfile_path, docker_train_additions, _run)
@@ -220,7 +229,6 @@ def main(
     run_docker(shared_volume, _run)
 
     # Capture the latest model and the output logs as artifacts
-    workdir = shared_volume.joinpath(workdir)
     trained_model_path = capture_train_output(workdir, _run)
 
     # Plot the log outputs and store as artifacts
