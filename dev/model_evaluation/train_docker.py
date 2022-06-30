@@ -133,6 +133,7 @@ def run_docker(shared_volume, _run, timeit=True):
     start = time.time()
     ubelt.cmd("docker run --name mmseg --rm --gpus all --shm-size=8g"
               f" -v {shared_volume}:/mmsegmentation/data/"
+              f" -v /home/eric/Desktop/SEMSEGTEST/SafeForest/submodules/mmsegmentation/mmseg/datasets/:/mmsegmentation/mmseg/datasets/"
               " mmsegmentation",
               verbose=1)
     end = time.time()

@@ -72,13 +72,20 @@ def generate_output_file(output_folder, index, is_ann, is_train):
     is_ann:
     is_train:
     """
+    if isinstance(index, int):
+        index = f"{index:06d}"
+    elif isinstance(index, tuple) or isinstance(index, list):
+        index = "-".join([f"{x:06d}" for x in index])
+    else:
+        raise NotImplementedError()
+
     output_sub_folder = Path(
         output_folder,
         ANN_DIR if is_ann else IMG_DIR,
         TRAIN_DIR if is_train else VAL_DIR,
     )
     ensuredir(output_sub_folder, mode=0o0755)
-    filename = f"{index:06d}{SEG_EXT if is_ann else RGB_EXT}.png"
+    filename = f"{index}{SEG_EXT if is_ann else RGB_EXT}.png"
     output_filepath = Path(output_sub_folder, filename)
     return output_filepath
 

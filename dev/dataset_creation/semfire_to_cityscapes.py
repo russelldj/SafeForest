@@ -11,6 +11,7 @@ from safeforest.dataset_generation.file_utils import (
     make_cityscapes_file,
     write_cityscapes_file,
 )
+from safeforest.dataset_generation.img_utils import augmented_images
 from safeforest.dataset_generation.split_utils import get_is_train_array
 from sklearn.model_selection import ParameterGrid
 
@@ -55,8 +56,23 @@ def parse_args():
     parser.add_argument(
         "--force-copy",
         help="Normally this tool symlinks files, if this flag is given"
-             " they will instead be copied.",
+             " they will instead be copied (takes longer).",
         action="store_true",
+    )
+    parser.add_argument(
+        "--stereo-filemap",
+        help="TODO.",
+        default=None,
+    )
+    parser.add_argument(
+        "--shuffle-backgrounds",
+        help="(int) If a number N is given with this flag, then for each normal"
+             " image, randomly create N additional images where background data"
+             " from other images (the 0 class) is laid over the 0 class from"
+             " the current image. Note that this cannot be a symlink since new"
+             " images are being created.",
+        default=None,
+        type=int,
     )
     args = parser.parse_args()
     return args
@@ -70,6 +86,8 @@ def main(
     img_prefix: str,
     write_RG_only: bool = False,
     force_copy: bool = False,
+    stereo_filemap: str = None,
+    shuffle_backgrounds: int = None,
     use_filename_as_index: bool = False,
     verbose=True,
     seed=0,
@@ -81,7 +99,7 @@ def main(
     input_folder:
         The folder containing img, lbl, etc.
     output_folder:
-        Where to write the simlinked output structure 
+        Where to write the symlinked output structure
     use_filename_as_index:
         Extract the filename as index instead of using position in list
     """
@@ -113,24 +131,39 @@ def main(
 
         is_train = is_train_array[index]
 
-        cityscapes_kwargs = {"output_folder": output_folder,
-                             "index": index,
-                             "is_train": is_train}
-        if write_RG_only:
-            img = imread(img_file)
-            # TODO consider trying to optimize this
-            img[..., 2] = 0
-            write_cityscapes_file(img, is_ann=False, **cityscapes_kwargs)
-        else:
-            make_cityscapes_file(img_file,
-                                 is_ann=False,
-                                 force_copy=force_copy,
-                                 **cityscapes_kwargs)
+        filemap = (None if stereo_filemap is None
+                   else json.load(open(stereo_filemap, "r")))
+        for j, (gen_img_file,
+                gen_label_file,
+                gen_copy) in enumerate(augmented_images(
+                    img_file=img_file,
+                    label_file=label_file,
+                    all_disparity_pairs=filemap,
+                    all_img_files=img_files,
+                    all_label_files=label_files,
+                    force_copy=force_copy,
+                    augmentations={"shuffle": shuffle_backgrounds},
+                )):
 
-        make_cityscapes_file(label_file,
-                             is_ann=True,
-                             force_copy=force_copy,
-                             **cityscapes_kwargs)
+            cityscapes_kwargs = {"output_folder": output_folder,
+                                 "index": (index, j),
+                                 "is_train": is_train}
+
+            if write_RG_only:
+                img = imread(gen_img_file)
+                # TODO consider trying to optimize this
+                img[..., 2] = 0
+                write_cityscapes_file(img, is_ann=False, **cityscapes_kwargs)
+            else:
+                make_cityscapes_file(gen_img_file,
+                                     is_ann=False,
+                                     force_copy=gen_copy,
+                                     **cityscapes_kwargs)
+
+            make_cityscapes_file(gen_label_file,
+                                 is_ann=True,
+                                 force_copy=gen_copy,
+                                 **cityscapes_kwargs)
 
 
 if __name__ == "__main__":
@@ -154,6 +187,8 @@ if __name__ == "__main__":
                 img_prefix=args.img_prefix,
                 write_RG_only=args.write_RG_only,
                 force_copy=args.force_copy,
+                stereo_filemap=args.stereo_filemap,
+                shuffle_backgrounds=args.shuffle_backgrounds,
                 **params,
             )
     else:
@@ -164,6 +199,8 @@ if __name__ == "__main__":
             img_prefix=args.img_prefix,
             write_RG_only=args.write_RG_only,
             force_copy=args.force_copy,
+            stereo_filemap=args.stereo_filemap,
+            shuffle_backgrounds=args.shuffle_backgrounds,
             train_frac=args.train_frac[0],
             shift=args.shift[0],
         )
