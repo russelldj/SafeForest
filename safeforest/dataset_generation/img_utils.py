@@ -40,23 +40,41 @@ def imwrite_ocv(filename, img):
     cv2.imwrite(filename, img)
 
 
-def augmented_images(img_file, label_file, all_disparity_pairs, all_img_files,
-                     all_label_files, force_copy, augmentations):
-    """TODO.
+def augmented_images(img_file, label_file, all_img_files, all_label_files,
+                     force_copy, augmentations):
+    """
+    Takes a hand-labled img/label pair and creates augmented data from them.
+    See below for more information on the types of augmentations possible.
+
+    Arguments:
+        img_file: Path() variable pointing to an existing image
+        label_file: Path() variable pointing to corresponding labeled image
+        all_img_files: List of Path() variables to all real image files
+        all_label_files: List of Path() variables to all real label files
+        force_copy: (bool) Whether the original image/label pair should be
+            copied (True) or symlinked (False)
+        augmentations: (dict) Contains allowable augmentations. See below:
 
     The supported augmentations are
-        "disparity": (None, (str, str)) If not None, the [0] string represents
-            an image, and numpy.load the [1] str to get disparity linking
-            img_file to this new image. We can construct a new label_file from
-            the disparity.
-        "shuffle": (None, int) If not None, then we will create N copies of the
+        "disparity": (None | (str, str)) If not None, the [0] string represents
+            an image, and numpy.load-ing the [1] str should get disparity
+            linking img_file to this new image. We can construct a new
+            label_file from the disparity.
+        "shuffle": (None | int) If not None, then we will create N copies of the
             current image, where backgrounds of other images are overlaid over
             its background.
 
-    All these generated images will be stored in a temporary directory that
-    lasts until the generator ends.
+    NOTE: All these generated images will be stored in a temporary directory
+    that lasts until the generator ends. They must be copied from there, not
+    symlinked. This is so this function doesn't have to care about final
+    locations or names.
 
-    Returns: TODO
+    Yields: An iterator of ("image path", "label path", "(bool) force copy")
+        tuples. The very first return is always the provided (unaugmented)
+        image/label pair, and the force_copy argument in that case is the one
+        passed in. For all other returns force_copy will be forced to be True
+        because those augmented images will all be generated and (as noted
+        above) will not be available forever.
     """
 
     with tempfile.TemporaryDirectory() as save_dir:
@@ -67,7 +85,8 @@ def augmented_images(img_file, label_file, all_disparity_pairs, all_img_files,
         for i, (d_img_file,
                 d_label_file) in enumerate(disparity(img_file,
                                                      label_file,
-                                                     all_disparity_pairs)):
+                                                     augmentations["disparity"],
+                                                     save_dir)):
             for j, (s_img_file,
                     s_label_file) in enumerate(shuffle(d_img_file,
                                                        d_label_file,
@@ -85,24 +104,130 @@ def augmented_images(img_file, label_file, all_disparity_pairs, all_img_files,
                 )
 
 
-def disparity(ifile, lfile, pairs):
+def disparity(ifile, lfile, pair, save_dir):
+    '''Generator that generates labels projected using stereo.'''
+
     # First, always yield the original (baseline)
     yield ifile, lfile
 
-    # TODO: Actually we should check the augmentation somehow
-
     # Then, if applicable, yield additional files
-    if pairs is not None:
-        pass
+    if pair is not None:
+
+        # Hard-code the Left/Right relationship between cameras. The idea of
+        # +1/-1 is whether to add or subtract the disparity to get to the other
+        # camera
+        functions = {"cam0": simple_set,
+                     "cam1": complex_set,
+                     "cam2": simple_set,
+                     "cam3": complex_set}
+        replace = {"cam0": "cam1", "cam1": "cam0", "cam2": "cam3", "cam3": "cam2"}
+
+        impath, disppath = pair
+
+        old_labels = cv2.imread(str(lfile), cv2.IMREAD_UNCHANGED)
+        new_labels = np.zeros_like(old_labels)
+        disparities = np.load(disppath)
+
+        # Camera of the labeled image (cam0/1/2/3)
+        incam = ifile.name.split("_")[1]
+
+        # Go through the classes in reverse order so the more important labels
+        # (like Vine=1) will be written on top.
+        for classid in sorted(np.unique(old_labels), reverse=True):
+            # Don't propagate the background, everything left unmarked by the
+            # other classes will be background.
+            if classid == 0:
+                continue
+
+            print(classid)
+
+            # Call the appropriate pixel-setting function for this classid
+            functions[incam](old_labels, new_labels, disparities, classid)
+
+        # Save the label file
+        save_path = save_dir.joinpath(lfile.name.replace(incam, replace[incam]))
+        cv2.imwrite(str(save_path), new_labels)
+
+        yield Path(impath), save_path
+
+
+def simple_set(old_labels, new_labels, disparities, classid):
+    '''
+    For these cameras, the disparity is "lined up" appropriately, such that
+    when you visualize it the disparity "lies over" the image correctly. As
+    such we can just apply the disparity to the "where" of the classes.
+    '''
+    # Find the points for a certain class
+    i, j = np.where(old_labels == classid)
+    class_disparity = disparities[i, j]
+
+    # Then iterate to only get the points with valid disparity (-1
+    # disparity indicates a match was not made)
+    valid = np.where(class_disparity > 0)[0]
+    i = i[valid]
+    j = j[valid]
+    class_disparity = disparities[i, j]
+
+    # Set the polarity appropriately and round to the nearest int
+    # (pixel location)
+    class_disparity = -1 * (class_disparity + 0.5).astype(int)
+
+    # Calculate the new pixel values for these labels based on the
+    # disparities. Disparity only affects horizontal pixels, a.k.a. j
+    j_shifted = j + class_disparity
+
+    # Modify the array
+    if len(i) > 0:
+        new_labels[i, j_shifted] = classid
+
+
+def complex_set(old_labels, new_labels, disparities, classid):
+    '''
+    For these cameras, the disparity is not lined up appropriately. The best I
+    could think of was to search for a horiztonal vector for each pixel and see
+    which disparity "pointed at" that pixel. Very time-consuming compared to
+    the simple set.
+    '''
+
+    max_search = (disparities.max() + 1).astype(int)
+
+    # Find the points for a certain class
+    i, j = np.where(old_labels == classid)
+
+    # This feels terrible, but I don't know how else to figure out which point
+    # in the right image matches up to a certain left pixel
+    i_found = []
+    j_found = []
+    j_shifted = []
+
+    indices = np.array(range(max_search))
+
+    for ival, jval in zip(i, j):
+        todo = disparities[ival, jval:jval+max_search]
+        thing = np.abs(indices[:len(todo)] - todo)
+        if thing.min() < 1:
+            i_found.append(ival)
+            j_found.append(jval)
+            j_shifted.append(jval + np.argmin(thing))
+    i_found = np.array(i_found)
+    j_found = np.array(j_found)
+    j_shifted = np.array(j_shifted)
+
+    # Modify the array
+    if len(i_found) > 0:
+        new_labels[i_found, j_shifted] = old_labels[i_found, j_found]
 
 
 def shuffle(ifile, lfile, number, save_dir, all_ifiles, all_lfiles):
+    '''Generator that generates images with shuffled backgrounds.'''
+
     # First, always yield the original (baseline)
     yield ifile, lfile
 
     # Then, if applicable, yield additional files
     if number is not None:
-        assert ifile.name == lfile.name
+        assert ifile.name == lfile.name or lfile.name.endswith(ifile.name), \
+               f"Does {ifile} should match {lfile}?"
 
         # Do this N times
         for _ in range(number):

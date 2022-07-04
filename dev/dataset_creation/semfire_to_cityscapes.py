@@ -1,6 +1,7 @@
 import argparse
-import os
+import json
 from cProfile import label
+import os
 from pathlib import Path
 
 import numpy as np
@@ -61,8 +62,13 @@ def parse_args():
     )
     parser.add_argument(
         "--stereo-filemap",
-        help="TODO.",
+        help="Should be a path to a JSON file containing a specifically created"
+             " dictionary of {'labeled_file_1': ('path_to_stereo_pair_1',"
+             " 'path_to_disparity_1'), ...}. That way when this script is"
+             " ingesting labeled images, we can use this file to look up the"
+             " location of stereo pairs and how they're related with disparity.",
         default=None,
+        type=Path,
     )
     parser.add_argument(
         "--shuffle-backgrounds",
@@ -75,6 +81,10 @@ def parse_args():
         type=int,
     )
     args = parser.parse_args()
+
+    if args.stereo_filemap is not None:
+        assert args.stereo_filemap.is_file()
+
     return args
 
 
@@ -86,7 +96,7 @@ def main(
     img_prefix: str,
     write_RG_only: bool = False,
     force_copy: bool = False,
-    stereo_filemap: str = None,
+    stereo_filemap: Path = None,
     shuffle_backgrounds: int = None,
     use_filename_as_index: bool = False,
     verbose=True,
@@ -116,8 +126,6 @@ def main(
     is_train_array = get_is_train_array(num_total, num_train, seed=seed, shift=shift)
 
     for i, (img_file, label_file) in enumerate(zip(img_files, label_files)):
-        if verbose:
-            print(f"img_file: {img_file}, label_file: {label_file}")
 
         if use_filename_as_index:
             if img_prefix != "":
@@ -131,19 +139,23 @@ def main(
 
         is_train = is_train_array[index]
 
-        filemap = (None if stereo_filemap is None
-                   else json.load(open(stereo_filemap, "r")))
+        filemap = ({} if stereo_filemap is None
+                   else json.load(stereo_filemap.open("r")))
         for j, (gen_img_file,
                 gen_label_file,
                 gen_copy) in enumerate(augmented_images(
                     img_file=img_file,
                     label_file=label_file,
-                    all_disparity_pairs=filemap,
                     all_img_files=img_files,
                     all_label_files=label_files,
                     force_copy=force_copy,
-                    augmentations={"shuffle": shuffle_backgrounds},
+                    augmentations={
+                        "disparity": filemap.get(img_file.name, None),
+                        "shuffle": shuffle_backgrounds,
+                    },
                 )):
+            if verbose:
+                print(f"img_file: {gen_img_file}, label_file: {gen_label_file}")
 
             cityscapes_kwargs = {"output_folder": output_folder,
                                  "index": (index, j),
