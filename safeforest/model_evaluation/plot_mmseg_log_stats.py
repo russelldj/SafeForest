@@ -80,9 +80,10 @@ def main(log_path, classes, save_dir):
             x, y = extract(log_path, xkey, ykey, mode="val")
             axis.plot(x, y, "o-", label=ykey)
         axis.legend()
+        axis.set_ylim(0, 1)
         axis.set_title(f"{xkey} vs. {prefix}, mode: val")
         if save_dir is not None:
-            file = save_dir.joinpath(f"classes_{xkey}.png")
+            file = save_dir.joinpath(f"classes_{xkey}_{prefix}.png")
             files.append(file)
             pyplot.savefig(file)
 
