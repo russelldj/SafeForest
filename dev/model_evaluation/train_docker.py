@@ -193,6 +193,7 @@ def evaluate_on_test(test_dir, workdir, classes, _run):
             sacred=True,
             _run=_run,
             verbose=False,
+            include_report=True,
         )
 
 

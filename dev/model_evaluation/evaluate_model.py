@@ -1,6 +1,7 @@
 import argparse
 import logging
 from pathlib import Path
+from sklearn.metrics import classification_report
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -226,7 +227,7 @@ def main(
 
 
 def calc_metrics(confusion, classes, save_dir, sacred=False, _run=None,
-                 verbose=False):
+                 verbose=False, include_report=False):
 
     graph_path = save_dir.joinpath("confusion_matrix.png")
     array_path = save_dir.joinpath("confusion_matrix.npy")
@@ -252,17 +253,62 @@ def calc_metrics(confusion, classes, save_dir, sacred=False, _run=None,
         bbox_inches="tight",
     )
     np.save(array_path, confusion)
+
+    # This will take a long time for images, which is why it is disableable
+    report = None
+    if include_report:
+
     if sacred:
         _run.add_artifact(graph_path)
         _run.add_artifact(array_path)
         _run.log_scalar("mIoU", miou)
         for class_name, class_iou in zip(classes, ious):
             _run.log_scalar(f"IoUs_{class_name}", class_iou)
+        if include_report:
+            for stat in ("precision", "recall", "f1-score"):
+                for class_name in classes:
+                    _run.log_scalar(f"{stat}_{class_name}",
+                                    report[class_name][stat])
+                for combo in ("macro avg", "weighted avg"):
+                    _run.log_scalar(f"{stat}_{combo.replace(' ', '_')}",
+                                    report[combo][stat])
         _run.log_scalar("Accuracy", accuracy)
     if verbose:
         plt.show()
 
     return accuracy, ious, confusion
+
+
+# Note that report generation may take a long time because classification_report
+# takes in the full dataset as a vector and this causes huse vectors when we're
+# dealing with images. If this causes issues, try to refactor.
+def confusion_to_class_report(confusion_matrix, class_names):
+
+    # This should always be true, just play it safe because of the shape[]
+    # stuff below
+    assert len(confusion_matrix.shape) == 2
+
+    # Recreate true/predicted data using the matrix
+    true_list = []
+    pred_list = []
+
+    y_true = numpy.array([])
+    y_pred = numpy.array([])
+    # Over the rows (true class)
+    for i in range(confusion_matrix.shape[0]):
+        # Over the columns (predicted class)
+        for j in range(confusion_matrix.shape[1]):
+            number = int(confusion_matrix[i, j])
+            y_true = numpy.hstack((y_true, [i] * number))
+            y_pred = numpy.hstack((y_pred, [j] * number))
+
+    return classification_report(
+        y_true=y_true,
+        y_pred=y_pred,
+        labels=[_ for _ in range(len(class_names))],
+        target_names=class_names,
+        output_dict=True,
+    )
 
 
 # if __name__ == "__main__":
