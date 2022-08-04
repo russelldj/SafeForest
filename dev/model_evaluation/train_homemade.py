@@ -20,9 +20,7 @@ from evaluate_model import calc_metrics, sample_for_confusion
 
 
 EXPERIMENT = Experiment("train_homemade_model")
-# TODO: Enable after running with real data for a few times
-# EXPERIMENT.observers.append(MongoObserver(url="localhost:27017", db_name="mmseg"))
-EXPERIMENT.observers.append(MongoObserver(url="localhost:27017", db_name="mmseg-test"))
+EXPERIMENT.observers.append(MongoObserver(url="localhost:27017", db_name="mmseg"))
 
 
 # Name for the config files in docker

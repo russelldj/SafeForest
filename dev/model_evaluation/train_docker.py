@@ -24,9 +24,7 @@ from evaluate_model import calc_metrics, sample_for_confusion
 
 
 EXPERIMENT = Experiment("train_docker_model")
-# TODO: Enable after running with final data for a few times
-# EXPERIMENT.observers.append(MongoObserver(url="localhost:27017", db_name="mmseg"))
-EXPERIMENT.observers.append(MongoObserver(url="localhost:27017", db_name="mmseg-test"))
+EXPERIMENT.observers.append(MongoObserver(url="localhost:27017", db_name="mmseg"))
 
 
 # Name for the config files in docker and where they are stored
@@ -51,11 +49,13 @@ def config():
     model_name = "unet"
     assert model_name in FILES, f"Given model {model_name} not recognized {FILES.keys()}"
 
+    # Set default flags, can be overridden on the command line
+    experiment_flags = "ABCDE"
+
     # Path to the root/original mmseg docker container
     # TODO: Reference the official version - maybe make it a fixed path?
     #       There is an official version here, can it be a relative link?
-    #           SafeForest/submodules/mmsegmentation/docker/Dockerfile
-    dockerfile_path = Path("/home/eric/Desktop/SEMSEGTEST/Dockerfile")
+    dockerfile_path = Path("/home/eric/Desktop/SEMSEGTEST/SafeForest/submodules/mmsegmentation/docker/Dockerfile")
     # Give the path to the "working directory" where we'll save our logs/model
     # and the inferenced test images. This was already an mmseg concept.
     workdir = f"WORKDIR_{int(time.time() * 1e6)}"
@@ -69,12 +69,8 @@ def config():
     ]
     docker_test_additions = [
         "\n",
-        docker_cmd + f" python {DATA}infer_on_test.py /mmsegmentation/configs/{model_name}/{MCFG} {DATA}REAL_MMREADY_TESTDATA/ {DATA}{workdir}/"
+        docker_cmd + f" python {DATA}infer_on_test.py /mmsegmentation/configs/{model_name}/{MCFG} {DATA}REAL_MMREADY_TESTDATA/img_dir/ {DATA}{workdir}/"
     ]
-    # Give the dataset and model configs that we want to use in training.
-    # TODO: Save versions in git and reference it here better
-    dataset_cfg_path = Path("/home/eric/Desktop/SEMSEGTEST/vine_dataset_config.py")
-    model_cfg_path = Path(f"/home/eric/Desktop/SEMSEGTEST/{FILES[model_name]}")
     # Additional files that needs to be copied into the shared volume
     additional_files = [
         Path("/home/eric/Desktop/SEMSEGTEST/SafeForest/safeforest/model_evaluation/infer_on_test.py"),
@@ -84,8 +80,6 @@ def config():
     # State the volume that will get -v linked with the docker container. Files
     # moved here can go into the container.
     shared_volume = Path("/home/eric/Desktop/SEMSEGTEST/")
-    # Directory where images/labels are stored in the cityscapes format.
-    train_dir = shared_volume.joinpath("REAL_MMREADY_DATA/")
     # Directory where test files are stored DIRECTLY in img_dir/*png and
     # ann_dir/*png. Similar to cityscapes but not quite the same (no val split).
     test_dir = shared_volume.joinpath("REAL_MMREADY_TESTDATA/")
@@ -201,28 +195,62 @@ def evaluate_on_test(test_dir, workdir, classes, _run):
 def main(
     dockerfile_path,
     workdir,
+    experiment_flags,
+    model_name,
     docker_train_additions,
     docker_test_additions,
-    dataset_cfg_path,
-    model_cfg_path,
     additional_files,
     classes,
     shared_volume,
-    train_dir,
     test_dir,
     _run,
 ):
     # Set up the workdir with a symlink
     workdir = shared_volume.joinpath(workdir)
-    symlink = shared_volume.joinpath("LATEST_WORKDIR")
-    symlink.unlink(missing_ok=True)
-    symlink.symlink_to(workdir)
+    wd_symlink = shared_volume.joinpath("LATEST_WORKDIR")
+    wd_symlink.unlink(missing_ok=True)
+    wd_symlink.symlink_to(workdir)
+
+    # Set up the desired training data symlink
+    train_flags = experiment_flags[:2]
+    train_symlink = shared_volume.joinpath("LATEST_MMREADY_DATA")
+    train_symlink.unlink(missing_ok=True)
+    if train_flags == "AB":
+        train_symlink.symlink_to("REAL_MMREADY_DATA/")
+    elif train_flags == "aB" or train_flags == "zB":
+        train_symlink.symlink_to("REAL_MMREADY_DATA_STEREO/")
+    elif train_flags == "Ab":
+        train_symlink.symlink_to("REAL_MMREADY_DATA_SHUFFLE8/")
+    elif train_flags == "ab" or train_flags == "zb":
+        train_symlink.symlink_to("REAL_MMREADY_DATA_STEREO_SHUFFLE8/")
+    else:
+        raise NotImplementedError()
+
+    # Prepare the dataset and model configs that we want to use in training
+    # based on the training flags
+    # TODO: Save versions in git and reference it here better
+    dcfg_name = "vine_dataset_config.py"
+    dcfg_flags = experiment_flags[3:5]
+    if dcfg_flags == "DE":
+        pass
+    elif dcfg_flags == "dE":
+        dcfg_name = dcfg_name.replace(".py", "_mode-d.py")
+    elif dcfg_flags == "De":
+        dcfg_name = dcfg_name.replace(".py", "_mode-e.py")
+    elif dcfg_flags == "de":
+        dcfg_name = dcfg_name.replace(".py", "_mode-de.py")
+    dataset_cfg_path = shared_volume.joinpath(dcfg_name)
+
+    mcfg_name = f"{FILES[model_name]}"
+    if experiment_flags[4] == "e":
+        mcfg_name = mcfg_name.replace(".py", "_mode-e.py")
+    model_cfg_path = shared_volume.joinpath(mcfg_name)
 
     # Modify/build Docker file for training, save as artifact
     build_docker(dockerfile_path, docker_train_additions, _run)
 
     # Save data files as artifacts
-    record_data(train_dir, test_dir, _run)
+    record_data(train_symlink, test_dir, _run)
 
     # Copy config files and save as artifacts
     prepare_config(dataset_cfg_path, model_cfg_path, additional_files, shared_volume, _run)

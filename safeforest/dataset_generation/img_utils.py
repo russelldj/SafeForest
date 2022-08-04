@@ -144,6 +144,11 @@ def disparity(ifile, lfile, pair, save_dir):
             # Call the appropriate pixel-setting function for this classid
             functions[incam](old_labels, new_labels, disparities, classid)
 
+        # Save all background-labeled points as 255 (invalid class). This is
+        # because too many real points are being labeled background and it's
+        # screwing everything over.
+        new_labels[new_labels == 0] = 255
+
         # Save the label file
         save_path = save_dir.joinpath(lfile.name.replace(incam, replace[incam]))
         cv2.imwrite(str(save_path), new_labels)
@@ -227,7 +232,7 @@ def shuffle(ifile, lfile, number, save_dir, all_ifiles, all_lfiles):
     # Then, if applicable, yield additional files
     if number is not None:
         assert ifile.name == lfile.name or lfile.name.endswith(ifile.name), \
-               f"Does {ifile} should match {lfile}?"
+               f"Does {ifile} match {lfile}?"
 
         # Do this N times
         for _ in range(number):
@@ -245,6 +250,9 @@ def shuffle(ifile, lfile, number, save_dir, all_ifiles, all_lfiles):
                 index = np.random.randint(0, len(all_ifiles))
                 other_image = cv2.imread(str(all_ifiles[index]), cv2.IMREAD_UNCHANGED)
                 other_label = cv2.imread(str(all_lfiles[index]), cv2.IMREAD_UNCHANGED)
+
+                if base_image is None or other_image is None:
+                    print(f"base_image is None: {base_image is None}, other_image is None: {other_image is None}\n\t{ifile}\n\t{lfile}")
 
                 # Choose the places where both images have backgrounds
                 mask = np.logical_and(base_label == 0, other_label == 0)

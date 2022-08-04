@@ -55,6 +55,11 @@ def parse_args():
     parser.add_argument("--write-RG-only", action="store_true")
     parser.add_argument("--run_sweep", action="store_true")
     parser.add_argument(
+        "--combine-classes",
+        help="TODO.",
+        nargs="+",
+    )
+    parser.add_argument(
         "--force-copy",
         help="Normally this tool symlinks files, if this flag is given"
              " they will instead be copied (takes longer).",
@@ -95,6 +100,7 @@ def main(
     *,
     img_prefix: str,
     write_RG_only: bool = False,
+    combine_classes: list = None,
     force_copy: bool = False,
     stereo_filemap: Path = None,
     shuffle_backgrounds: int = None,
@@ -175,6 +181,7 @@ def main(
             make_cityscapes_file(gen_label_file,
                                  is_ann=True,
                                  force_copy=gen_copy,
+                                 combine=combine_classes,
                                  **cityscapes_kwargs)
 
 
@@ -198,6 +205,7 @@ if __name__ == "__main__":
                 output_folder,
                 img_prefix=args.img_prefix,
                 write_RG_only=args.write_RG_only,
+                combine_classes=args.combine_classes,
                 force_copy=args.force_copy,
                 stereo_filemap=args.stereo_filemap,
                 shuffle_backgrounds=args.shuffle_backgrounds,
@@ -210,6 +218,7 @@ if __name__ == "__main__":
             args.output_folder,
             img_prefix=args.img_prefix,
             write_RG_only=args.write_RG_only,
+            combine_classes=args.combine_classes,
             force_copy=args.force_copy,
             stereo_filemap=args.stereo_filemap,
             shuffle_backgrounds=args.shuffle_backgrounds,

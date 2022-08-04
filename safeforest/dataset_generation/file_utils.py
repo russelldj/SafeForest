@@ -1,3 +1,4 @@
+import cv2
 import numpy as np
 import os
 from pathlib import Path
@@ -99,13 +100,26 @@ def write_cityscapes_file(
 
 
 def make_cityscapes_file(
-    img_path: Path, output_folder: Path, index: int, is_ann: bool, is_train: bool, force_copy: bool,
+    img_path: Path, output_folder: Path, index: int, is_ann: bool,
+    is_train: bool, force_copy: bool, combine: list = None,
 ):
     output_filepath = generate_output_file(output_folder, index, is_ann, is_train)
     if force_copy:
         copyfile(img_path, output_filepath)
     else:
         symlink(img_path, output_filepath)
+
+    # Combine classes (pixel values) in the order given
+    if combine is not None:
+        assert force_copy is True, "Must use force_copy when combining classes"
+        image = cv2.imread(str(output_filepath), cv2.IMREAD_UNCHANGED)
+
+        # Class IDs should be given as "int:int" args. For example, "6:3" would
+        # take all class 6 pixels and classify them as class 3
+        for from_id, to_id in map(lambda x: map(int, x.split(":")), combine):
+            image[image == from_id] = to_id
+
+        cv2.imwrite(str(output_filepath), image)
 
 
 def ensure_dir_normal_bits(folder):
