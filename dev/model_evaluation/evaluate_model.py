@@ -6,6 +6,11 @@ from sklearn.metrics import classification_report
 import matplotlib.pyplot as plt
 import numpy as np
 from imageio import imread, imwrite
+
+# TODO: Fix poetry shit
+import sys
+sys.path.append("/home/eric/Desktop/SEMSEGTEST/SafeForest")
+
 from sacred import Experiment
 from sacred.observers import MongoObserver
 from safeforest.config import PALETTE_MAP, REMAP_MAP, SEMFIRE_CLASSES

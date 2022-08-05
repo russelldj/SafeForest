@@ -8,7 +8,7 @@ NOTE: You can modify the config like so (works with previous command as well):
     python train_docker.py with model_name=bisenetv2
 '''
 
-from imageio import imread
+import cv2
 from pathlib import Path
 import shutil
 import tempfile
@@ -18,6 +18,9 @@ from sacred import Experiment
 from sacred.observers import MongoObserver
 import ubelt
 
+# TODO: Fix poetry shit
+import sys
+sys.path.append("/home/eric/Desktop/SEMSEGTEST/SafeForest")
 from safeforest.model_evaluation import plot_mmseg_log_stats
 
 from evaluate_model import calc_metrics, sample_for_confusion
@@ -125,9 +128,10 @@ def prepare_config(dcfg, mcfg, additional, shared, _run):
 def run_docker(shared_volume, _run, timeit=True):
     # Capture how long this takes as a metric
     start = time.time()
+    print("STARTING DOCKER !!!!!!!!!!!!!!!!!!!!!!!!!")
     ubelt.cmd("docker run --name mmseg --rm --gpus all --shm-size=8g"
               f" -v {shared_volume}:/mmsegmentation/data/"
-              f" -v /home/eric/Desktop/SEMSEGTEST/SafeForest/submodules/mmsegmentation/mmseg/datasets/:/mmsegmentation/mmseg/datasets/"
+              " -v /home/eric/Desktop/SEMSEGTEST/SafeForest/submodules/mmsegmentation/mmseg/datasets/:/mmsegmentation/mmseg/datasets/"
               " mmsegmentation",
               verbose=1)
     end = time.time()
@@ -161,7 +165,10 @@ def evaluate_on_test(test_dir, workdir, classes, _run):
     def img_generator(base, directory, do_read=False):
         files = sorted(base.joinpath(directory).glob("*png"))
         if do_read:
-            return map(imread, files)
+            return map(
+                lambda x: cv2.cvtColor(cv2.imread(str(x)), cv2.COLOR_BGR2RGB),
+                files,
+            )
         else:
             return files
 

@@ -7,6 +7,10 @@ from pathlib import Path
 import numpy as np
 import ubelt as ub
 from imageio import imread
+
+# TODO: Fix poetry shit
+import sys
+sys.path.append("/home/eric/Desktop/SEMSEGTEST/SafeForest")
 from safeforest.dataset_generation.file_utils import (
     get_files,
     make_cityscapes_file,
