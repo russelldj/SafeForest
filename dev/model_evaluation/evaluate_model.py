@@ -9,7 +9,7 @@ from imageio import imread, imwrite
 
 # TODO: Fix poetry shit
 import sys
-sys.path.append("/home/eric/Desktop/SEMSEGTEST/SafeForest")
+sys.path.append("/home/eric/Desktop/SEMSEG/SafeForest")
 
 from sacred import Experiment
 from sacred.observers import MongoObserver

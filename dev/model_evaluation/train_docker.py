@@ -20,7 +20,7 @@ import ubelt
 
 # TODO: Fix poetry shit
 import sys
-sys.path.append("/home/eric/Desktop/SEMSEGTEST/SafeForest")
+sys.path.append("/home/eric/Desktop/SEMSEG/SafeForest")
 from safeforest.model_evaluation import plot_mmseg_log_stats
 
 from evaluate_model import calc_metrics, sample_for_confusion
@@ -58,7 +58,7 @@ def config():
     # Path to the root/original mmseg docker container
     # TODO: Reference the official version - maybe make it a fixed path?
     #       There is an official version here, can it be a relative link?
-    dockerfile_path = Path("/home/eric/Desktop/SEMSEGTEST/SafeForest/submodules/mmsegmentation/docker/Dockerfile")
+    dockerfile_path = Path("/home/eric/Desktop/SEMSEG/SafeForest/submodules/mmsegmentation/docker/Dockerfile")
     # Give the path to the "working directory" where we'll save our logs/model
     # and the inferenced test images. This was already an mmseg concept.
     workdir = f"WORKDIR_{int(time.time() * 1e6)}"
@@ -76,13 +76,13 @@ def config():
     ]
     # Additional files that needs to be copied into the shared volume
     additional_files = [
-        Path("/home/eric/Desktop/SEMSEGTEST/SafeForest/safeforest/model_evaluation/infer_on_test.py"),
+        Path("/home/eric/Desktop/SEMSEG/SafeForest/safeforest/model_evaluation/infer_on_test.py"),
     ]
     # Pretty simple, give the classes (in the right order) that were labeled
     classes = ("background", "vine", "post", "leaves", "trunk", "sign")
     # State the volume that will get -v linked with the docker container. Files
     # moved here can go into the container.
-    shared_volume = Path("/home/eric/Desktop/SEMSEGTEST/")
+    shared_volume = Path("/home/eric/Desktop/SEMSEG/data/")
     # Directory where test files are stored DIRECTLY in img_dir/*png and
     # ann_dir/*png. Similar to cityscapes but not quite the same (no val split).
     test_dir = shared_volume.joinpath("REAL_MMREADY_TESTDATA/")
@@ -96,7 +96,8 @@ def build_docker(original, additions, _run):
                 file.write(line)
             for line in additions:
                 file.write(line)
-        ubelt.cmd(f"docker build -t mmsegmentation {docker_dir}", verbose=1)
+        result = ubelt.cmd(f"docker build -t mmsegmentation {docker_dir}", verbose=1)
+        assert result["ret"] == 0, result["err"]
         _run.add_artifact(newfile)
 
 
@@ -128,12 +129,14 @@ def prepare_config(dcfg, mcfg, additional, shared, _run):
 def run_docker(shared_volume, _run, timeit=True):
     # Capture how long this takes as a metric
     start = time.time()
-    print("STARTING DOCKER !!!!!!!!!!!!!!!!!!!!!!!!!")
-    ubelt.cmd("docker run --name mmseg --rm --gpus all --shm-size=8g"
-              f" -v {shared_volume}:/mmsegmentation/data/"
-              " -v /home/eric/Desktop/SEMSEGTEST/SafeForest/submodules/mmsegmentation/mmseg/datasets/:/mmsegmentation/mmseg/datasets/"
-              " mmsegmentation",
-              verbose=1)
+    result = ubelt.cmd(
+        "docker run --name mmseg --rm --gpus all --shm-size=8g"
+        f" -v {shared_volume}:/mmsegmentation/data/"
+        " -v /home/eric/Desktop/SEMSEG/SafeForest/submodules/mmsegmentation/mmseg/datasets/:/mmsegmentation/mmseg/datasets/"
+        " mmsegmentation",
+        verbose=1,
+    )
+    assert result["ret"] == 0, result["err"]
     end = time.time()
     if timeit:
         _run.log_scalar("TrainingTimeHrs", (end-start) / 3600)

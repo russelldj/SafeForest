@@ -10,7 +10,7 @@ from imageio import imread
 
 # TODO: Fix poetry shit
 import sys
-sys.path.append("/home/eric/Desktop/SEMSEGTEST/SafeForest")
+sys.path.append("/home/eric/Desktop/SEMSEG/SafeForest")
 from safeforest.dataset_generation.file_utils import (
     get_files,
     make_cityscapes_file,
