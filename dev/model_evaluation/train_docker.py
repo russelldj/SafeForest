@@ -72,7 +72,7 @@ def config():
     ]
     docker_test_additions = [
         "\n",
-        docker_cmd + f" python {DATA}infer_on_test.py /mmsegmentation/configs/{model_name}/{MCFG} {DATA}REAL_MMREADY_TESTDATA/img_dir/ {DATA}{workdir}/"
+        docker_cmd + f" python {DATA}infer_on_test.py /mmsegmentation/configs/{model_name}/{MCFG} {DATA}REAL_MMREADY_TESTDATA/ {DATA}{workdir}/"
     ]
     # Additional files that needs to be copied into the shared volume
     additional_files = [
@@ -169,7 +169,7 @@ def evaluate_on_test(test_dir, workdir, classes, _run):
         files = sorted(base.joinpath(directory).glob("*png"))
         if do_read:
             return map(
-                lambda x: cv2.cvtColor(cv2.imread(str(x)), cv2.COLOR_BGR2RGB),
+                lambda x: cv2.imread(str(x), cv2.IMREAD_UNCHANGED),
                 files,
             )
         else:
