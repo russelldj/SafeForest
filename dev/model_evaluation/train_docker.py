@@ -79,7 +79,7 @@ def config():
         Path("/home/eric/Desktop/SEMSEG/SafeForest/safeforest/model_evaluation/infer_on_test.py"),
     ]
     # Pretty simple, give the classes (in the right order) that were labeled
-    classes = ("background", "vine", "post", "leaves", "trunk", "sign")
+    classes = ("background", "vine", "trunk", "post", "leaves", "sign")
     # State the volume that will get -v linked with the docker container. Files
     # moved here can go into the container.
     shared_volume = Path("/home/eric/Desktop/SEMSEG/data/")
