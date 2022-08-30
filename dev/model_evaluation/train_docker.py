@@ -52,6 +52,9 @@ def config():
     model_name = "unet"
     assert model_name in FILES, f"Given model {model_name} not recognized {FILES.keys()}"
 
+    # Take a training data suffix in if desired
+    train_suffix = None
+
     # Set default flags, can be overridden on the command line
     experiment_flags = "ABCDE"
 
@@ -185,7 +188,7 @@ def evaluate_on_test(test_dir, workdir, classes, _run):
             remap=None,
             log_preds=True,
             palette=None,
-            sacred=True,
+            sacred=_run is not None,
             verbose=False,
             _run=_run,
             save_file=save_dir_str+"/qualitative_{:06d}.png",
@@ -194,7 +197,7 @@ def evaluate_on_test(test_dir, workdir, classes, _run):
             confusion=confusion,
             classes=classes,
             save_dir=Path(save_dir_str),
-            sacred=True,
+            sacred=_run is not None,
             _run=_run,
             verbose=False,
             include_report=True,
@@ -205,6 +208,7 @@ def evaluate_on_test(test_dir, workdir, classes, _run):
 def main(
     dockerfile_path,
     workdir,
+    train_suffix,
     experiment_flags,
     model_name,
     docker_train_additions,
@@ -222,19 +226,22 @@ def main(
     wd_symlink.symlink_to(workdir)
 
     # Set up the desired training data symlink
-    train_flags = experiment_flags[:2]
     train_symlink = shared_volume.joinpath("LATEST_MMREADY_DATA")
     train_symlink.unlink(missing_ok=True)
-    if train_flags == "AB":
-        train_symlink.symlink_to("REAL_MMREADY_DATA/")
-    elif train_flags == "aB" or train_flags == "zB":
-        train_symlink.symlink_to("REAL_MMREADY_DATA_STEREO/")
-    elif train_flags == "Ab":
-        train_symlink.symlink_to("REAL_MMREADY_DATA_SHUFFLE8/")
-    elif train_flags == "ab" or train_flags == "zb":
-        train_symlink.symlink_to("REAL_MMREADY_DATA_STEREO_SHUFFLE8/")
+    if train_suffix is None:
+        train_flags = experiment_flags[:2]
+        if train_flags == "AB":
+            train_symlink.symlink_to("REAL_MMREADY_DATA/")
+        elif train_flags == "aB" or train_flags == "zB":
+            train_symlink.symlink_to("REAL_MMREADY_DATA_STEREO/")
+        elif train_flags == "Ab":
+            train_symlink.symlink_to("REAL_MMREADY_DATA_SHUFFLE8/")
+        elif train_flags == "ab" or train_flags == "zb":
+            train_symlink.symlink_to("REAL_MMREADY_DATA_STEREO_SHUFFLE8/")
+        else:
+            raise NotImplementedError()
     else:
-        raise NotImplementedError()
+        train_symlink.symlink_to(f"REAL_MMREADY_DATA_{train_suffix}")
 
     # Prepare the dataset and model configs that we want to use in training
     # based on the training flags

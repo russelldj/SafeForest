@@ -262,23 +262,30 @@ def calc_metrics(confusion, classes, save_dir, sacred=False, _run=None,
     # This will take a long time for images, which is why it is disableable
     report = None
     if include_report:
+        print("Generating report")
         report = confusion_to_class_report(confusion, classes)
 
     if sacred:
-        _run.add_artifact(graph_path)
-        _run.add_artifact(array_path)
-        _run.log_scalar("mIoU", miou)
-        for class_name, class_iou in zip(classes, ious):
-            _run.log_scalar(f"IoUs_{class_name}", class_iou)
-        if report is not None:
-            for stat in ("precision", "recall", "f1-score"):
-                for class_name in classes:
-                    _run.log_scalar(f"{class_name}_{stat}",
-                                    report[class_name][stat])
-                for combo in ("macro avg", "weighted avg"):
-                    _run.log_scalar(f"{combo.replace(' ', '_')}_{stat}",
-                                    report[combo][stat])
-        _run.log_scalar("Accuracy", accuracy)
+        artifact_function = _run.add_artifact
+        scalar_function = _run.log_scalar
+    else:
+        artifact_function = print
+        scalar_function = print
+    artifact_function(graph_path)
+    artifact_function(array_path)
+    scalar_function("mIoU", miou)
+    for class_name, class_iou in zip(classes, ious):
+        scalar_function(f"IoUs_{class_name}", class_iou)
+    if report is not None:
+        for stat in ("precision", "recall", "f1-score"):
+            for class_name in classes:
+                scalar_function(f"{class_name}_{stat}",
+                                report[class_name][stat])
+            for combo in ("macro avg", "weighted avg"):
+                scalar_function(f"{combo.replace(' ', '_')}_{stat}",
+                                report[combo][stat])
+    scalar_function("Accuracy", accuracy)
+
     if verbose:
         plt.show()
 
